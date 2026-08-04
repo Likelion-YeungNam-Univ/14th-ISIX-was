@@ -1,6 +1,6 @@
-package com.closer.global.common;
+package com.closr.global.common;
 
-import com.closer.global.exception.ErrorCode;
+import com.closr.global.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

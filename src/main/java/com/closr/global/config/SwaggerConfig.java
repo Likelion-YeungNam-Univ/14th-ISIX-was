@@ -1,4 +1,4 @@
-package com.closer.global.config;
+package com.closr.global.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -23,7 +23,7 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("CLOSER API")
+                        .title("CLOSR API")
                         .description("3D 가상 피팅 플랫폼")
                         .version("v0.1.0"))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER))

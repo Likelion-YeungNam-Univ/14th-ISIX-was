@@ -30,7 +30,7 @@
 한 장의 사진으로 3D 아바타를 생성하고, 물리 시뮬레이션 기반으로 의류 사이즈를 추천하는 가상 피팅 플랫폼입니다.
 
 기존 가상 피팅은 대부분 2D 이미지 합성으로, 옷과 몸의 공간 관계를 계산하지 않습니다.
-**CLOSER는 합성이 아니라 물리 연산을 합니다.**
+**CLOSR는 합성이 아니라 물리 연산을 합니다.**
 
 <br />
 
@@ -156,8 +156,8 @@ uvicorn app.main:app --reload --port 8000
 ## 폴더 구조
 
 ```
-src/main/java/com/closer/
-├─ CloserApplication.java
+src/main/java/com/closr/
+├─ ClosrApplication.java
 ├─ global/
 │  ├─ config/            Web(CORS), JPA, Swagger, RestClient
 │  ├─ exception/         ErrorCode, CustomException, GlobalExceptionHandler

@@ -1,4 +1,4 @@
-package com.closer.global.exception;
+package com.closr.global.exception;
 
 import lombok.Getter;
 

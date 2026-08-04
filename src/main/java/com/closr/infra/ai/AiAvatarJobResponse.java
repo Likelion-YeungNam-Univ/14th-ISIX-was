@@ -1,4 +1,4 @@
-package com.closer.infra.ai;
+package com.closr.infra.ai;
 
 /**
  * AI 서버 작업 등록 응답 DTO. (POST /api/avatar/generate, 202 Accepted)

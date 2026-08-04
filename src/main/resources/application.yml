@@ -1,12 +1,12 @@
 spring:
   application:
-    name: closer
+    name: closr
 
   profiles:
     active: local
 
   datasource:
-    url: ${DB_URL:jdbc:h2:mem:closer}
+    url: ${DB_URL:jdbc:h2:mem:closr}
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:}
 
@@ -55,4 +55,4 @@ jwt:
 
 logging:
   level:
-    com.closer: DEBUG
+    com.closr: DEBUG

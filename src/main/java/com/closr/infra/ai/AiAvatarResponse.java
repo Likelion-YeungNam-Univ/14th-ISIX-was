@@ -1,4 +1,4 @@
-package com.closer.infra.ai;
+package com.closr.infra.ai;
 
 import java.util.List;
 import java.util.Map;

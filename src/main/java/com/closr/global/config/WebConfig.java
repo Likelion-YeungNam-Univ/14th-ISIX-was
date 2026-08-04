@@ -1,4 +1,4 @@
-package com.closer.global.config;
+package com.closr.global.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

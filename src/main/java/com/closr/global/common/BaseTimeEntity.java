@@ -1,4 +1,4 @@
-package com.closer.global.common;
+package com.closr.global.common;
 
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;

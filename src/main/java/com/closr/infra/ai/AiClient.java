@@ -1,7 +1,7 @@
-package com.closer.infra.ai;
+package com.closr.infra.ai;
 
-import com.closer.global.exception.CustomException;
-import com.closer.global.exception.ErrorCode;
+import com.closr.global.exception.CustomException;
+import com.closr.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;

@@ -1,6 +1,6 @@
-package com.closer.global.exception;
+package com.closr.global.exception;
 
-import com.closer.global.common.ApiResponse;
+import com.closr.global.common.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
