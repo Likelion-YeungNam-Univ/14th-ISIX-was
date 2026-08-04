@@ -45,8 +45,12 @@ cors:
 ai:
   server:
     url: ${AI_SERVER_URL:http://localhost:8000}
-    # 아바타 생성이 최대 30초 걸립니다. 기본값으로 두면 정상 요청도 실패합니다.
-    timeout: ${AI_SERVER_TIMEOUT:60000}
+    # 아바타 생성은 비동기(폴링)라 개별 호출은 모두 짧습니다.
+    #   POST /api/avatar/generate -> 202 즉시 반환
+    #   GET  /api/avatar/{id}     -> 상태만 조회
+    # 다만 사진 업로드가 최대 10MB 이고 AI 서버가 무거운 파이썬 프로세스라
+    # 기본값보다는 여유를 둡니다.
+    timeout: ${AI_SERVER_TIMEOUT:30000}
 
 jwt:
   secret: ${JWT_SECRET:local-development-secret-key-change-me-in-production}
