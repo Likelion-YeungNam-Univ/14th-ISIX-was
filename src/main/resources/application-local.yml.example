@@ -1,0 +1,11 @@
+# 이 파일을 application-local.yml 로 복사해 사용합니다.
+# application-local.yml 은 .gitignore 에 등록되어 있습니다.
+
+spring:
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
