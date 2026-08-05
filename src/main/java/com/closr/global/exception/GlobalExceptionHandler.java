@@ -1,6 +1,7 @@
 package com.closr.global.exception;
 
 import com.closr.global.common.ApiResponse;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -55,6 +56,27 @@ public class GlobalExceptionHandler {
         log.debug("No handler: {}", e.getMessage());
         return ResponseEntity.status(ErrorCode.NOT_FOUND.getHttpStatus())
                 .body(ApiResponse.fail(ErrorCode.NOT_FOUND));
+    }
+
+    /**
+     * {@code @RequestParam} · {@code @PathVariable} 의 제약 위반.
+     *
+     * <p>본문 검증 실패는 {@link MethodArgumentNotValidException} 으로 오지만,
+     * 파라미터 검증 실패는 이쪽으로 옵니다.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException e) {
+        String field = e.getConstraintViolations().stream()
+                .findFirst()
+                .map(violation -> {
+                    // propertyPath 는 "createAvatar.height" 형태라 마지막 마디만 씁니다.
+                    String path = violation.getPropertyPath().toString();
+                    return path.substring(path.lastIndexOf('.') + 1);
+                })
+                .orElse(null);
+        log.warn("Constraint violation: field={}", field);
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT.getHttpStatus())
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, field));
     }
 
     /** 경로변수 · 쿼리파라미터의 타입이 맞지 않는 경우. 예) {@code /garments/abc/fit} */
