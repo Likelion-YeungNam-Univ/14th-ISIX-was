@@ -78,13 +78,41 @@ jobs:
             sudo systemctl daemon-reload
             sudo systemctl enable closr
 
-            # systemd 전환 이전 nohup으로 띄운 프로세스가 남아 있으면 정리합니다.
-            # systemd가 띄우는 프로세스는 app.jar이므로 영향을 받지 않습니다.
-            OLD_PID=$(pgrep -f 'java -jar .*closr-.*\.jar' || true)
-            if [ -n "$OLD_PID" ]; then
-                echo "이전 nohup 프로세스 종료 (PID: $OLD_PID)"
-                kill $OLD_PID
-                sleep 3
+            # systemd 전환 이전 nohup 으로 띄운 프로세스가 남아 있으면 정리합니다.
+            #
+            # 이 스크립트는 본문이 SSH 세션의 커맨드라인에 통째로 실려 실행됩니다.
+            # 그래서 pgrep -f 로 커맨드라인을 훑으면 스크립트에 적힌 패턴 문자열
+            # 때문에 스크립트를 실행 중인 셸 자신이 잡히고, 그 PID 를 kill 하면
+            # SSH 세션이 끊겨 배포가 exit 143 으로 실패합니다. 실제로 그랬습니다.
+            #
+            # 그래서 커맨드라인 패턴 대신 프로세스 이름이 정확히 java 인 것만
+            # 추린 뒤, 그중 예전 jar 를 쓰는 것만 골라 종료합니다.
+            # 셸 · sshd 는 이름이 java 가 아니라 원천적으로 걸리지 않고,
+            # systemd 가 띄우는 프로세스는 app.jar 라 여기에 해당하지 않습니다.
+            #
+            # nohup 방식에서 넘어오기 위한 일회성 정리입니다.
+            # 배포가 한 번 성공하고 나면 이 블록은 지워도 됩니다.
+            old_nohup_pids() {
+                for PID in $(pgrep -x java 2>/dev/null || true); do
+                    case "$(ps -o args= -p "$PID" 2>/dev/null)" in
+                        *closr-*.jar*) echo "$PID" ;;
+                    esac
+                done
+            }
+
+            OLD_PIDS=$(old_nohup_pids)
+            if [ -n "$OLD_PIDS" ]; then
+                echo "이전 nohup 프로세스 종료 (PID: $(echo $OLD_PIDS | tr '\n' ' '))"
+                kill $OLD_PIDS 2>/dev/null || true
+                sleep 5
+
+                REMAINING=$(old_nohup_pids)
+                if [ -n "$REMAINING" ]; then
+                    echo "종료되지 않아 강제 종료합니다 (PID: $(echo $REMAINING | tr '\n' ' '))"
+                    kill -9 $REMAINING 2>/dev/null || true
+                fi
+            else
+                echo "정리할 이전 nohup 프로세스가 없습니다"
             fi
 
       - name: EC2에서 애플리케이션 재실행
