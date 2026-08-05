@@ -3,7 +3,7 @@ spring:
     name: closr
 
   profiles:
-    active: local
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   datasource:
     url: ${DB_URL:jdbc:h2:mem:closr}
@@ -18,9 +18,11 @@ spring:
         format_sql: true
     open-in-view: false
 
+  # 콘솔은 인증이 없어 열려 있으면 누구나 임의 SQL 을 실행할 수 있습니다.
+  # 기본은 꺼두고 local 프로필에서만 켭니다.
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
 
   servlet:
@@ -53,10 +55,28 @@ ai:
     timeout: ${AI_SERVER_TIMEOUT:30000}
 
 jwt:
-  secret: ${JWT_SECRET:local-development-secret-key-change-me-in-production}
+  # 기본값을 두지 않습니다. 저장소에 적힌 시크릿으로 서명하면 누구나 토큰을 위조할 수 있습니다.
+  # 로컬 개발용 기본값은 아래 local 프로필 문서에 있습니다.
+  secret: ${JWT_SECRET}
   access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}
 
 logging:
   level:
     com.closr: DEBUG
+
+---
+# 로컬 개발 프로필.
+# application-local.yml 은 .gitignore 대상이라 새로 받은 사람에게는 없습니다.
+# 별도 설정 없이 bootRun 이 되도록 개발 편의 설정은 여기에 둡니다.
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  h2:
+    console:
+      enabled: true
+
+jwt:
+  secret: ${JWT_SECRET:local-only-dev-secret-never-used-outside-local-profile}
