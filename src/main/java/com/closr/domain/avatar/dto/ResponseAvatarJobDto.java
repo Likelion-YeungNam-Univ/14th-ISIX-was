@@ -1,5 +1,5 @@
 package com.closr.domain.avatar.dto;
 
-public record AvatarJobResponseDto(
+public record ResponseAvatarJobDto(
         String jobId
 ) {}

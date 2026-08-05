@@ -1,7 +1,7 @@
 package com.closr.api;
 
-import com.closr.domain.avatar.dto.AvatarJobResponseDto;
-import com.closr.domain.avatar.dto.AvatarStatusResponseDto;
+import com.closr.domain.avatar.dto.ResponseAvatarJobDto;
+import com.closr.domain.avatar.dto.ResponseAvatarStatusDto;
 import com.closr.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,7 +17,7 @@ public interface AvatarApi {
 
     @Operation(summary = "아바타 생성 요청", description = "전신 사진과 신체 정보를 입력받아 아바타 생성을 비동기로 요청합니다. (최대 30초 소요)")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ResponseEntity<ApiResponse<AvatarJobResponseDto>> createAvatar(
+    ResponseEntity<ApiResponse<ResponseAvatarJobDto>> createAvatar(
             @Parameter(description = "전신 사진 파일 (JPEG/PNG, 10MB 이하)")
             @RequestPart("photo") MultipartFile photo,
 
@@ -30,7 +30,7 @@ public interface AvatarApi {
 
     @Operation(summary = "아바타 생성 상태 조회 (폴링)", description = "발급받은 jobId로 아바타 생성 진행 상태와 최종 치수 결과를 조회합니다.")
     @GetMapping("/{jobId}")
-    ResponseEntity<ApiResponse<AvatarStatusResponseDto>> getAvatarStatus(
+    ResponseEntity<ApiResponse<ResponseAvatarStatusDto>> getAvatarStatus(
             @Parameter(description = "아바타 생성 요청 시 발급받은 jobId")
             @PathVariable("jobId") String jobId
     );

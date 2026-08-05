@@ -1,5 +1,5 @@
 package com.closr.domain.user.dto;
 
-public record SessionResponseDto(
+public record ResponseSessionDto(
         String sessionToken
 ) {}
