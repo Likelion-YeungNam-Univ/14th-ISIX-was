@@ -1,4 +1,10 @@
+// ResponseSizeOptionsDto.java
 package com.closr.domain.fitting.dto;
 
-public class ResponseSizeOptionsDto {
-}
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record ResponseSizeOptionsDto(
+        @JsonProperty("S") ResponseSizeDetailDto s,
+        @JsonProperty("M") ResponseSizeDetailDto m,
+        @JsonProperty("L") ResponseSizeDetailDto l
+) {}
