@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - develop
+  pull_request:
+    branches:
+      - develop
+
+# PR에 댓글을 남기기 위한 깃허브 보트 권한 설정
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   deploy:
@@ -50,3 +58,15 @@ jobs:
             fi
             nohup java -jar ~/closr-0.0.1-SNAPSHOT.jar > ~/app.log 2>&1 &
             echo "새로운 버전 배포 완료"
+
+      - name: PR에 배포/빌드 완료 댓글 남기기
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 **EC2 CI/CD 빌드 및 배포 테스트가 완료되었습니다!**\n\n| Item | Status |\n|---|---|\n| **Result** | ✅ Success |\n| **Triggered By** | @' + context.actor + ' |'
+            })
