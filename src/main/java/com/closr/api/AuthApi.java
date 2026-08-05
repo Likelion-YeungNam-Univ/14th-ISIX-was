@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/api/v1/sessions")
 public interface AuthApi {
 
-    @Operation(summary = "ㅇ게스트 세션 발급", description = "가입 없이 체험하기 위한 7일 유지 세션 토큰을 발급합니다.")
+    @Operation(summary = "게스트 세션 발급", description = "가입 없이 체험하기 위한 7일 유지 세션 토큰을 발급합니다.")
     @PostMapping
     ResponseEntity<ApiResponse<ResponseSessionDto>> createGuestSession();
 }

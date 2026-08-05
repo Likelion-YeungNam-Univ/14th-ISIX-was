@@ -11,13 +11,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Tag(name = "Fitting", description = "가상 피팅 및 사이즈 추천 API")
-@RequestMapping("/api/v1/fittings")
+@RequestMapping("/api/v1/avatars/{avatarId}/garments/{garmentId}/fit")
 public interface FittingApi {
 
-    @Operation(summary = "사이즈 추천 및 여유량 조회", description = "사용자의 실측 치수를 기준으로 선택한 의류의 사이즈별 여유량과 추천 사이즈를 반환합니다.")
-    @GetMapping("/{garmentId}")
-    ResponseEntity<ApiResponse<ResponseFittingDto>> getFittingRecommendation(
-            @Parameter(description = "선택한 의류의 고유 ID")
-            @PathVariable("garmentId") Long garmentId
+    @Operation(
+            summary = "사이즈별 여유량·판정 및 추천 사이즈 조회",
+            description = "아바타와 의류 조합에 대해 S/M/L 사이즈별 부위별 여유량(ease)·판정(verdict)과 추천 사이즈를 한 번에 반환합니다."
+    )
+    @GetMapping
+    ResponseEntity<ApiResponse<ResponseFittingDto>> getFitting(
+            @Parameter(description = "아바타 ID") @PathVariable Long avatarId,
+            @Parameter(description = "의류 ID") @PathVariable Long garmentId
     );
 }
