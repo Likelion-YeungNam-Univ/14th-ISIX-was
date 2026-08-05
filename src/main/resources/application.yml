@@ -80,3 +80,22 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:local-only-dev-secret-never-used-outside-local-profile}
+
+---
+# 운영 프로필. 값은 모두 환경변수로 주입합니다.
+# EC2 에서는 systemd 가 /home/ubuntu/.env 를 읽어 넣어줍니다.
+#
+# DB_URL 에 기본값을 두지 않습니다. 값이 없을 때 조용히 인메모리 H2 로 뜨면
+# 배포는 성공한 것처럼 보이지만 재시작마다 데이터가 사라집니다.
+# 그런 배포가 나가느니 기동을 실패시키는 편이 낫습니다.
+#
+# DB_URL 이 비면 다음 메시지를 내며 기동에 실패합니다. 원인은 DB_URL 누락입니다.
+#   Failed to instantiate [com.zaxxer.hikari.HikariDataSource]:
+#   ... threw exception with message: URL must start with 'jdbc'
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}

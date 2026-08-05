@@ -62,6 +62,11 @@ jobs:
             [Service]
             User=ubuntu
             WorkingDirectory=/home/ubuntu
+            # 시크릿은 저장소에 두지 않고 EC2 의 .env 에서 읽습니다.
+            # 파일이 없으면 prod 프로필의 DB_URL 이 비어 기동에 실패하고,
+            # 아래 재실행 스텝의 상태 확인에서 배포가 빨간불로 끝납니다.
+            EnvironmentFile=-/home/ubuntu/.env
+            Environment=SPRING_PROFILES_ACTIVE=prod
             ExecStart=/usr/bin/java -jar /home/ubuntu/app.jar
             SuccessExitStatus=143
             Restart=always
