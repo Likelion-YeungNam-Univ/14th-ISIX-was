@@ -1,6 +1,5 @@
 package com.closr.global.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -13,7 +12,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * refresh_token 을 httpOnly 쿠키로 주고받으므로 credentials 를 허용합니다.
  */
 @Configuration
-@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${cors.origins}")

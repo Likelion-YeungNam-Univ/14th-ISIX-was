@@ -6,9 +6,16 @@ import com.closr.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Avatar", description = "아바타 생성 및 상태 조회 API")
@@ -22,10 +29,10 @@ public interface AvatarApi {
             @RequestPart("photo") MultipartFile photo,
 
             @Parameter(description = "키 (cm, 130~200)")
-            @RequestParam("height") int height,
+            @RequestParam("height") @Min(130) @Max(200) int height,
 
             @Parameter(description = "몸무게 (kg, 30~150)")
-            @RequestParam("weight") int weight
+            @RequestParam("weight") @Min(30) @Max(150) int weight
     );
 
     @Operation(summary = "아바타 생성 상태 조회 (폴링)", description = "발급받은 jobId로 아바타 생성 진행 상태와 최종 치수 결과를 조회합니다.")
