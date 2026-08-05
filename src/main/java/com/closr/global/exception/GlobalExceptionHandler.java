@@ -7,7 +7,10 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 전역 예외 처리.
@@ -36,6 +39,30 @@ public class GlobalExceptionHandler {
         log.warn("Validation failed: field={}", field);
         return ResponseEntity.status(ErrorCode.INVALID_INPUT.getHttpStatus())
                 .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, field));
+    }
+
+    /**
+     * 존재하지 않는 경로.
+     *
+     * <p>Spring Boot 3.2 부터 매칭되는 핸들러가 없으면 정적 리소스 탐색으로 넘어가
+     * {@link NoResourceFoundException} 이 올라옵니다. 아래 {@code handleUnexpected} 가
+     * 이것까지 잡아 모든 404 가 500 으로 나가던 것을 막습니다.
+     *
+     * <p>존재하지 않는 경로 요청은 서버 잘못이 아니므로 error 로 남기지 않습니다.
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(Exception e) {
+        log.debug("No handler: {}", e.getMessage());
+        return ResponseEntity.status(ErrorCode.NOT_FOUND.getHttpStatus())
+                .body(ApiResponse.fail(ErrorCode.NOT_FOUND));
+    }
+
+    /** 경로변수 · 쿼리파라미터의 타입이 맞지 않는 경우. 예) {@code /garments/abc/fit} */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        log.warn("Type mismatch: name={}, value={}", e.getName(), e.getValue());
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT.getHttpStatus())
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, e.getName()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

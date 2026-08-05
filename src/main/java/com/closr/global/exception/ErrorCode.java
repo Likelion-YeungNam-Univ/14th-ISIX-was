@@ -45,6 +45,7 @@ public enum ErrorCode {
             "아바타 생성 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요"),
 
     // 공통
+    NOT_FOUND(HttpStatus.NOT_FOUND, "요청하신 경로를 찾을 수 없습니다"),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다"),
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "파일 크기가 너무 큽니다"),
     UNSUPPORTED_FORMAT(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다"),
