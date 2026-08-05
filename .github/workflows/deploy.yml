@@ -30,8 +30,8 @@ jobs:
       - name: Gradle 실행 권한 부여
         run: chmod +x gradlew
 
-      - name: Gradle 빌드 (테스트 제외)
-        run: ./gradlew build -x test
+      - name: Gradle 빌드 및 테스트
+        run: ./gradlew build
 
       # 아래 배포 스텝들은 develop에 실제로 머지된 코드(push)에서만 실행됩니다.
       # PR에서는 위의 빌드까지만 수행합니다.
