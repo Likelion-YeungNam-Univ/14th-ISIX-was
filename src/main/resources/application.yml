@@ -33,6 +33,15 @@ spring:
 server:
   port: 8080
 
+  # 응답 Content-Type 에 charset 이 없으면 클라이언트가 인코딩을 추측합니다.
+  # Latin-1 로 추측하면 한글이 "ìì²­í..." 형태로 깨집니다.
+  # force: true 로 요청 · 응답 양쪽에 UTF-8 을 강제합니다.
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
 springdoc:
   swagger-ui:
     path: /docs

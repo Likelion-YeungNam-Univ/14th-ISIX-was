@@ -44,3 +44,9 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// 지정하지 않으면 빌드하는 컴퓨터의 기본 인코딩을 따릅니다.
+// UTF-8 이 아닌 환경에서 빌드하면 소스의 한글 상수가 깨진 채로 컴파일됩니다.
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
