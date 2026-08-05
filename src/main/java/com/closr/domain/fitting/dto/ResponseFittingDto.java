@@ -1,9 +1,9 @@
 package com.closr.domain.fitting.dto;
 
-import java.util.Map;
-
+// 최상위 응답 DTO 가상 피팅 및 사이즈별 추천 결과
 public record ResponseFittingDto(
+        Long garmentId,
+        ResponseSizeOptionsDto sizes,
         String recommendedSize,
-        String recommendReason,
-        Map<String, Double> clearance // 부위별 여유량 (어깨, 가슴, 허리 등)
+        String recommendationReason
 ) {}
