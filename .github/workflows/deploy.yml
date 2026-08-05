@@ -1,0 +1,52 @@
+name: Deploy Spring Boot to AWS EC2
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 17 설정
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Gradle 실행 권한 부여
+        run: chmod +x gradlew
+
+      - name: Gradle 빌드 (테스트 제외)
+        run: ./gradlew build -x test
+
+      - name: JAR 파일 EC2로 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          source: "build/libs/closr-0.0.1-SNAPSHOT.jar"
+          target: "~/"
+          strip_components: 2
+
+      - name: EC2에서 애플리케이션 재실행
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            CURRENT_PID=$(pgrep -f closr-0.0.1-SNAPSHOT.jar)
+            if [ -n "$CURRENT_PID" ]; then
+                echo "기존 프로세스 종료 (PID: $CURRENT_PID)"
+                kill -9 $CURRENT_PID
+                sleep 2
+            fi
+            nohup java -jar ~/closr-0.0.1-SNAPSHOT.jar > ~/app.log 2>&1 &
+            echo "새로운 버전 배포 완료"
