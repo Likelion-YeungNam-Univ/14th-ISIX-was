@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockMultipartFile;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>응답 형태와 함께 키 · 몸무게 범위 검증이 실제로 동작하는지 확인합니다.
  */
 @WebMvcTest(AvatarController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AvatarControllerTest {
 
     @MockBean
