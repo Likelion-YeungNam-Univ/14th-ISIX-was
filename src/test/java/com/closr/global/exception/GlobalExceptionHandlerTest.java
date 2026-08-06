@@ -1,9 +1,12 @@
 package com.closr.global.exception;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +46,26 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.error.field").value("garmentId"));
+    }
+
+    @Test
+    @DisplayName("오류 응답의 Content-Type 에 charset=UTF-8 을 명시한다")
+    void errorResponseDeclaresUtf8Charset() throws Exception {
+        mockMvc.perform(get("/api/v1/does-not-exist"))
+                .andExpect(header().string("Content-Type", "application/json;charset=UTF-8"));
+    }
+
+    @Test
+    @DisplayName("한글 오류 메시지가 깨지지 않는다")
+    void koreanErrorMessageIsNotGarbled() throws Exception {
+        String body = mockMvc.perform(get("/api/v1/does-not-exist"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(body).contains("요청하신 경로를 찾을 수 없습니다");
+        // Latin-1 로 잘못 해석했을 때 나타나는 형태가 섞여 있으면 안 됩니다.
+        assertThat(body).doesNotContain("ì");
     }
 
     @Test
