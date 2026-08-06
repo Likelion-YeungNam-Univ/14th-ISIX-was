@@ -77,11 +77,17 @@
 git clone https://github.com/Likelion-YeungNam-Univ/14th-ISIX-was.git
 cd 14th-ISIX-was
 
-cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
+# 로컬 DB (PostgreSQL 16) 를 먼저 띄웁니다
+docker compose up -d
+
 ./gradlew bootRun
 ```
 
-> Java 17 이상이 필요합니다. API 문서는 실행 후 `/docs` 에서 확인할 수 있습니다.
+> Java 17 이상과 Docker 가 필요합니다. API 문서는 실행 후 `/docs` 에서 확인할 수 있습니다.
+>
+> 부위별 치수를 `jsonb` 로 저장하기 때문에 H2 로는 대체할 수 없습니다.
+> 접속 정보는 `local` 프로필에 기본값이 있어 컨테이너만 띄우면 별도 설정 없이 실행됩니다.
+> 테스트도 이 DB 를 사용하므로 `./gradlew test` 전에 컨테이너가 떠 있어야 합니다.
 
 ---
 

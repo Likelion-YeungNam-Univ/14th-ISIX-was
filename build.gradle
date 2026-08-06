@@ -34,7 +34,8 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    runtimeOnly 'com.h2database:h2'
+    // measurements 를 jsonb 로 쓰기 때문에 H2 는 더 이상 쓰지 않습니다.
+    // 로컬은 docker compose, CI 는 서비스 컨테이너로 PostgreSQL 을 띄웁니다.
     runtimeOnly 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
