@@ -137,13 +137,53 @@ jobs:
             mv -f "$JAR" /home/ubuntu/app.jar
             rm -f ~/deploy/*.jar
 
+            # 기동을 확인할 수단이 없으면 성공으로 처리하지 않습니다.
+            if ! command -v curl > /dev/null 2>&1; then
+                echo "curl 이 없어 기동을 확인할 수 없습니다. (sudo apt-get install -y curl)"
+                exit 1
+            fi
+
+            # 재시작 횟수를 0 부터 세기 위해 이전 실패 상태를 지웁니다.
+            sudo systemctl reset-failed closr 2>/dev/null || true
             sudo systemctl restart closr
-            sleep 5
-            if ! sudo systemctl is-active --quiet closr; then
-                echo "서비스 기동에 실패했습니다."
+
+            # 유닛에 Type= 이 없어 기본값 Type=simple 입니다. systemd 는 프로세스를
+            # exec 한 순간 active 로 표시하는데, Spring Boot 가 실제로 뜨는 데는
+            # 10~20초가 걸립니다. 그래서 is-active 는 "JVM 이 실행됐다" 이상을
+            # 보증하지 못하고, Restart=always 때문에 크래시 루프 중에도 계속
+            # active 로 보입니다. 실제로 HTTP 응답이 오는지로 판정합니다.
+            HEALTH_URL="http://127.0.0.1:8080/api-docs"
+            TIMEOUT=90
+            DEADLINE=$(( $(date +%s) + TIMEOUT ))
+            CODE=000
+
+            echo "기동 확인 중 (최대 ${TIMEOUT}초): $HEALTH_URL"
+            while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+                # 연결 실패 시에도 curl 이 -w 로 000 을 출력합니다.
+                CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$HEALTH_URL" || true)
+                [ -z "$CODE" ] && CODE=000
+                if [ "$CODE" = "200" ]; then
+                    break
+                fi
+
+                # 크래시 루프라면 타임아웃까지 기다릴 이유가 없습니다.
+                RESTARTS=$(systemctl show closr -p NRestarts --value 2>/dev/null || echo 0)
+                if [ "${RESTARTS:-0}" -ge 3 ]; then
+                    echo "재시작이 반복되고 있습니다 (NRestarts=$RESTARTS). 기동 실패로 판단합니다."
+                    break
+                fi
+
+                sleep 3
+            done
+
+            if [ "$CODE" != "200" ]; then
+                echo "기동 확인 실패: 마지막 응답 코드 $CODE"
+                sudo systemctl status closr --no-pager || true
                 sudo journalctl -u closr -n 50 --no-pager
                 exit 1
             fi
+
+            echo "기동 확인 완료 (HTTP $CODE)"
             echo "새로운 버전 배포 완료"
 
       - name: PR에 빌드 완료 댓글 남기기
