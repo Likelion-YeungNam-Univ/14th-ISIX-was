@@ -14,15 +14,12 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
-    // 인증
-    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 이메일입니다"),
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"),
-    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다"),
-    TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다"),
-    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다"),
-    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다"),
-    SOCIAL_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "소셜 인증에 실패했습니다"),
+    // 세션 — 회원 가입 · 로그인 없이 게스트 세션만 사용합니다.
+    // 소셜 로그인 · JWT 관련 코드는 회원 기능을 쓰지 않기로 하면서 제거했습니다.
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "세션이 필요합니다"),
     SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "세션을 찾을 수 없습니다"),
+    SESSION_EXPIRED(HttpStatus.UNAUTHORIZED, "세션이 만료되었습니다. 새로고침 후 다시 시도해주세요"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다"),
 
     // 아바타 — AI 서버에서 전달받은 코드를 그대로 사용
     NO_PERSON_DETECTED(HttpStatus.UNPROCESSABLE_ENTITY,
