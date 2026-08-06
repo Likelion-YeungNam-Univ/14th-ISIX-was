@@ -1,5 +1,6 @@
 package com.closr.domain.user.controller;
 
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +28,9 @@ class AuthControllerTest {
     @Test
     @DisplayName("게스트 세션 발급은 토큰을 담은 성공 응답을 반환한다")
     void createGuestSessionReturnsToken() throws Exception {
+
+        given(sessionService.createGuestSession()).willReturn("fake-mock-token");
+
         mockMvc.perform(post("/api/v1/sessions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
