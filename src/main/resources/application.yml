@@ -110,10 +110,27 @@ spring:
 
   jpa:
     hibernate:
-      # 운영에서는 스키마를 코드가 마음대로 바꾸지 않습니다.
-      # 엔티티와 실제 스키마가 다르면 기동 단계에서 실패합니다.
-      ddl-auto: validate
+      # validate 였으나 운영 DB 에 테이블이 없어 기동에 실패했습니다.
+      #   Schema-validation: missing table [avatars]
+      # 로컬은 update 라 엔티티를 추가하면 테이블이 알아서 생기는데,
+      # 운영은 검사만 하므로 아무도 테이블을 만들지 않은 상태였습니다.
+      #
+      # 해커톤 동안은 엔티티가 계속 추가되므로 update 로 둡니다.
+      # 그렇지 않으면 엔티티를 추가할 때마다 운영이 같은 이유로 멈춥니다.
+      # update 는 테이블·컬럼을 추가만 하고 삭제하지 않습니다.
+      #
+      # 데모 이후에는 Flyway 로 스키마를 관리하고 validate 로 되돌립니다.
+      ddl-auto: update
+    # data.sql 이 Hibernate 의 테이블 생성 이후에 실행되도록 합니다.
+    # 이게 없으면 테이블이 없는 상태에서 INSERT 가 돌아 실패합니다.
+    defer-datasource-initialization: true
 
+  # never 였던 탓에 data.sql 이 한 번도 실행되지 않아, 배포하면
+  # garments 테이블이 빈 채로 떴습니다. 서버는 200 을 주기 때문에
+  # 프론트에는 오류 없이 빈 목록만 보이는 상태였습니다.
+  #
+  # data.sql 은 ON CONFLICT (design) DO NOTHING 이라
+  # 매 기동마다 실행돼도 중복이 생기지 않습니다.
   sql:
     init:
-      mode: never
+      mode: always
