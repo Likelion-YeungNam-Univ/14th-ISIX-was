@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * 올라오는데, 이를 catch-all 이 잡아 모든 404 가 500 으로 나가던 회귀를 막습니다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 class GlobalExceptionHandlerTest {
 
     @Autowired

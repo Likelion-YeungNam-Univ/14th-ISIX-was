@@ -4,10 +4,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.closr.domain.user.service.SessionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.hamcrest.Matchers;
 
@@ -18,7 +21,11 @@ import org.hamcrest.Matchers;
  * 프론트가 이 형태에 맞춰 화면을 붙이므로, 명세가 바뀌면 여기서 먼저 깨져야 합니다.
  */
 @WebMvcTest(FittingController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class FittingControllerTest {
+
+    @MockBean
+    private SessionService sessionService;
 
     private static final String PATH = "/api/v1/avatars/{avatarId}/garments/{garmentId}/fit";
 
