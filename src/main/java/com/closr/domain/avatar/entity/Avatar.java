@@ -82,4 +82,14 @@ public class Avatar extends BaseTimeEntity {
         this.measurements = measurements;
         this.confidence = confidence;
     }
+    public void markDone(String glbUrl, Map<String, Double> measurements, Double confidence) {
+        this.status = "done";
+        this.glbUrl = glbUrl;
+        this.measurements = measurements;
+        this.confidence = confidence;
+    }
+
+    public void markFailed() {
+        this.status = "failed";
+    }
 }
