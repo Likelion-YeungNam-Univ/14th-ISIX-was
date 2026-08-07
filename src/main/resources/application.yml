@@ -121,7 +121,16 @@ spring:
       #
       # 데모 이후에는 Flyway 로 스키마를 관리하고 validate 로 되돌립니다.
       ddl-auto: update
+    # data.sql 이 Hibernate 의 테이블 생성 이후에 실행되도록 합니다.
+    # 이게 없으면 테이블이 없는 상태에서 INSERT 가 돌아 실패합니다.
+    defer-datasource-initialization: true
 
+  # never 였던 탓에 data.sql 이 한 번도 실행되지 않아, 배포하면
+  # garments 테이블이 빈 채로 떴습니다. 서버는 200 을 주기 때문에
+  # 프론트에는 오류 없이 빈 목록만 보이는 상태였습니다.
+  #
+  # data.sql 은 ON CONFLICT (design) DO NOTHING 이라
+  # 매 기동마다 실행돼도 중복이 생기지 않습니다.
   sql:
     init:
-      mode: never
+      mode: always
