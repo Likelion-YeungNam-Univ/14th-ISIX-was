@@ -44,10 +44,20 @@ public class Garment extends BaseTimeEntity {
     @Column(nullable = false, length = 30)
     private String category;
 
+    /**
+     * 목록 화면에 쓰는 썸네일 주소.
+     *
+     * <p>이미지가 아직 준비되지 않아 시드에서는 비워 둡니다.
+     * 스토리지가 붙으면 채웁니다.
+     */
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
+
     @Builder
-    private Garment(String design, String name, String category) {
+    private Garment(String design, String name, String category, String thumbnailUrl) {
         this.design = design;
         this.name = name;
         this.category = category;
+        this.thumbnailUrl = thumbnailUrl;
     }
 }
