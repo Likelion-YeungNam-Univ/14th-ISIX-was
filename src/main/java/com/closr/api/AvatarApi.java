@@ -7,6 +7,8 @@ import com.closr.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,8 +27,10 @@ public interface AvatarApi {
             @Parameter(description = "전신 사진 파일 (JPEG/PNG, 10MB 이하)")
             @RequestPart("photo") MultipartFile photo,
             @Parameter(description = "키 (cm, 130~200)")
+            @Min(130) @Max(200)
             @RequestParam("height") int height,
             @Parameter(description = "몸무게 (kg, 30~150)")
+            @Min(30) @Max(150)
             @RequestParam("weight") int weight
     );
 
