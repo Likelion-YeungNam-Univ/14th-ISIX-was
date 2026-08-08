@@ -22,12 +22,17 @@ import org.hibernate.type.SqlTypes;
 /**
  * 의류 한 벌의 사이즈별 실측 스펙.
  *
- * <p>여유량(ease)은 아바타 치수에서 이 스펙을 빼서 계산합니다.
+ * <p>여유량(ease)은 <b>이 스펙에서 아바타 치수를 빼서</b> 계산합니다.
+ * 양수면 옷이 더 큰 것, 즉 여유입니다.
  * 값을 파일에서 읽지 않고 테이블로 들고 있는 이유는, 런타임에 CSV 를 읽으면
  * 배포 환경에 파일이 없거나 인코딩이 달라 깨지기 때문입니다.
  *
- * <p><b>스펙 확정 전이라 시드 데이터는 비어 있습니다.</b>
- * 부위 구성이 아직 바뀔 수 있어 measurements 를 jsonb 로 둡니다.
+ * <p>부위는 검증이 끝난 4개만 씁니다.
+ * {@code shoulder_width} · {@code chest_circ} · {@code waist_circ} · {@code hip_circ}.
+ * {@code sleeve_length} · {@code back_length} 는 패턴에서 측정은 되지만
+ * 아바타 계측과 정의가 같은지 확인되지 않아 제외했습니다.
+ *
+ * <p>의류마다 해당 부위가 달라(바지에 가슴둘레는 무의미) measurements 를 jsonb 로 둡니다.
  */
 @Entity
 @Table(
