@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Tag(name = "Avatar", description = "아바타 생성 및 상태 조회 API")
 @RequestMapping("/api/v1/avatars")
 public interface AvatarApi {
@@ -34,5 +36,11 @@ public interface AvatarApi {
             @Parameter(hidden = true) @RequestAttribute("session") Session session,
             @Parameter(description = "아바타 생성 요청 시 발급받은 jobId")
             @PathVariable("jobId") String jobId
+    );
+
+    @Operation(summary = "내 아바타 목록 조회", description = "세션 토큰을 기반으로 지금까지 생성한 모든 아바타 목록을 최신순으로 불러옵니다.")
+    @GetMapping("/me")
+    ResponseEntity<ApiResponse<List<ResponseAvatarStatusDto>>> getMyAvatars(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session
     );
 }

@@ -11,9 +11,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * 아바타 컨트롤러.
@@ -51,4 +54,19 @@ public class AvatarController implements AvatarApi {
                 avatar.getMeasurements()
         )));
     }
+    @Override
+    public ResponseEntity<ApiResponse<List<ResponseAvatarStatusDto>>> getMyAvatars(
+            @RequestAttribute("session") Session session) {
+
+        List<ResponseAvatarStatusDto> result = avatarService.getMyAvatars(session).stream()
+                .map(avatar -> new ResponseAvatarStatusDto(
+                        avatar.getStatus(),
+                        avatar.getId(),
+                        avatar.getMeasurements()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
 }

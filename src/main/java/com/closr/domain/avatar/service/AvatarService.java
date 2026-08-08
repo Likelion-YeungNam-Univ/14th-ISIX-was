@@ -1,5 +1,6 @@
 package com.closr.domain.avatar.service;
 
+import com.closr.domain.avatar.dto.ResponseAvatarStatusDto;
 import com.closr.domain.avatar.entity.Avatar;
 import com.closr.domain.avatar.repository.AvatarRepository;
 import com.closr.domain.user.entity.Session;
@@ -13,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -70,7 +73,7 @@ public class AvatarService {
         AiAvatarResponse response = aiClient.getAvatar(avatar.getJobId());
 
         // NPE 방어: 폴링 중 AI 서버가 일시적으로 이상한 응답을 주면
-        // 앱이 터지지 않게 이번 턴은 그냥 넘기고 다음 폴링을 노림
+        // 터지지 않게 이번 턴은 그냥 넘기고 다음 폴링을 노림
         if (!response.success() || response.data() == null) {
             log.warn("AI 서버 상태 조회 일시적 실패 - jobId: {}", avatar.getJobId());
             return;
@@ -88,5 +91,18 @@ public class AvatarService {
             avatar.markFailed();
         }
         // processing이면 그대로 둠
+    }
+
+    @Transactional
+    public List<Avatar> getMyAvatars(Session session) {
+        // 세션에 해당하는 모든 아바타 최신순으로 싹 다 가져오기
+        List<Avatar> avatars = avatarRepository.findAllBySessionOrderByCreatedAtDesc(session);
+
+        // processing 상태로 굳어있는 애들 혹시 있으면 한 번 더 찔러보기
+        avatars.stream()
+                .filter(avatar -> STATUS_PROCESSING.equals(avatar.getStatus()))
+                .forEach(this::syncFromAiServer);
+
+        return avatars;
     }
 }
