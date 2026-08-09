@@ -6,7 +6,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.closr.domain.user.entity.Session;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,11 +44,18 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("경로변수 타입이 맞지 않으면 400 과 문제 필드를 반환한다")
     void pathVariableTypeMismatchReturnsBadRequest() throws Exception {
-        mockMvc.perform(get("/api/v1/avatars/1/garments/{garmentId}/fit", "abc"))
+        // 피팅 경로는 세션을 요구합니다. MockMvc 는 /api/v1/* 로 등록된 인증 필터를
+        // 태우지 않으므로, 세션 속성을 직접 넣어야 컨트롤러까지 도달합니다.
+        mockMvc.perform(get("/api/v1/avatars/1/garments/{garmentId}/fit", "abc")
+                        .requestAttr("session", Session.builder()
+                                .sessionToken("test-token")
+                                .expiresAt(LocalDateTime.now().plusDays(1))
+                                .build()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.error.field").value("garmentId"));
     }
+
 
     @Test
     @DisplayName("오류 응답의 Content-Type 에 charset=UTF-8 을 명시한다")

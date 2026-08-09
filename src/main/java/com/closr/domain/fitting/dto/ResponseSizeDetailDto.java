@@ -3,7 +3,8 @@ package com.closr.domain.fitting.dto;
 import java.util.List;
 
 public record ResponseSizeDetailDto(
-        String modelUrl, // 해당 사이즈 3D 모델 또는 피팅 결과 URL
-        List<ResponseFitPartDto> parts, // 여유량 및 핏 판정 리스트
-        boolean recommended // 추천 사이즈인지 여부
+        String modelUrl,                  // 사전 계산 GLB 주소. 파일이 없으면 null
+        List<ResponseFitPartDto> parts,   // 부위별 여유량 · 판정
+        boolean recommended,              // 추천 사이즈인지
+        boolean wearable                  // 꽉 끼는 부위가 없어 착용 가능한지
 ) {}
