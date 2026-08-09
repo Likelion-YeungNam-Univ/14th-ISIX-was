@@ -190,8 +190,10 @@ public class FittingService {
             bySize.put(judgement.size(), new ResponseSizeDetailDto(
                     judgement.modelUrl(),
                     judgement.parts(),
-                    judgement.size().equals(best.size()),
-                    judgement.wearable()));
+                    judgement.penalty(),
+                    judgement.totalDeviation(),
+                    judgement.wearable(),
+                    judgement.size().equals(best.size())));
         }
 
         return new ResponseFittingDto(

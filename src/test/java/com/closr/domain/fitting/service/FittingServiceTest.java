@@ -122,7 +122,7 @@ class FittingServiceTest {
                 .filter(part -> part.part().equals("chest_circ")).findFirst().orElseThrow();
 
         // 의류 99 - 아바타 88 = 여유 11, 목표 14 이므로 편차 -3 → 허용범위(-4~6) 안
-        assertThat(chest.ease()).isEqualTo(11.0);
+        assertThat(chest.actualEase()).isEqualTo(11.0);
         assertThat(chest.refEase()).isEqualTo(14.0);
         assertThat(chest.deviation()).isEqualTo(-3.0);
         assertThat(chest.verdict()).isEqualTo("적정");

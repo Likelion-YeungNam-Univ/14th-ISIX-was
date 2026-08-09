@@ -58,8 +58,10 @@ class FittingControllerTest {
         return new ResponseSizeDetailDto(
                 null,
                 List.of(new ResponseFitPartDto("chest_circ", 11.0, 14.0, -3.0, verdict, "green")),
-                recommended,
-                wearable);
+                0.0,
+                3.0,
+                wearable,
+                recommended);
     }
 
     @Test
@@ -81,6 +83,8 @@ class FittingControllerTest {
                 .andExpect(jsonPath("$.data.recommendedSize").value("S"))
                 .andExpect(jsonPath("$.data.sizes.S.recommended").value(true))
                 .andExpect(jsonPath("$.data.sizes.S.wearable").value(true))
+                .andExpect(jsonPath("$.data.sizes.S.penalty").value(0.0))
+                .andExpect(jsonPath("$.data.sizes.S.totalDev").value(3.0))
                 .andExpect(jsonPath("$.data.sizes.L.wearable").value(false));
     }
 
@@ -97,7 +101,7 @@ class FittingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.sizes.S.parts", Matchers.hasSize(1)))
                 .andExpect(jsonPath("$.data.sizes.S.parts[0].part").value("chest_circ"))
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].ease").value(11.0))
+                .andExpect(jsonPath("$.data.sizes.S.parts[0].actualEase").value(11.0))
                 .andExpect(jsonPath("$.data.sizes.S.parts[0].refEase").value(14.0))
                 .andExpect(jsonPath("$.data.sizes.S.parts[0].deviation").value(-3.0))
                 .andExpect(jsonPath("$.data.sizes.S.parts[0].verdict").value("적정"))
