@@ -45,6 +45,18 @@ public class Garment extends BaseTimeEntity {
     private String category;
 
     /**
+     * 핏. 슬림 · 레귤러 · 오버핏.
+     *
+     * <p>같은 여유량이라도 핏에 따라 판정이 달라집니다. 오버핏 가슴 여유 20cm 는
+     * 정상이지만 슬림에서는 과대입니다. 그래서 허용 편차 범위를 핏별로 다르게 두고,
+     * 이 값으로 {@code fit_tolerances} 를 찾습니다.
+     *
+     * <p>기존 행에도 값을 채워야 해서 not null 을 걸지 않았습니다.
+     */
+    @Column(length = 20)
+    private String fit;
+
+    /**
      * 목록 화면에 쓰는 썸네일 주소.
      *
      * <p>이미지가 아직 준비되지 않아 시드에서는 비워 둡니다.
@@ -54,10 +66,11 @@ public class Garment extends BaseTimeEntity {
     private String thumbnailUrl;
 
     @Builder
-    private Garment(String design, String name, String category, String thumbnailUrl) {
+    private Garment(String design, String name, String category, String fit, String thumbnailUrl) {
         this.design = design;
         this.name = name;
         this.category = category;
+        this.fit = fit;
         this.thumbnailUrl = thumbnailUrl;
     }
 }
