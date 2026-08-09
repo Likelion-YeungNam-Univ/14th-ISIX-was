@@ -58,16 +58,34 @@ public class GarmentSizeSpec extends BaseTimeEntity {
     @Column(columnDefinition = "jsonb")
     private Map<String, Double> measurements;
 
+    /**
+     * 부위별 목표 여유 (cm). 이 옷이 의도한 여유입니다.
+     *
+     * <p>판정은 실제 여유가 아니라 <b>목표 대비 편차</b>로 합니다.
+     * <pre>
+     *   실제 여유 = 의류 치수 - 아바타 치수
+     *   편차      = 실제 여유 - 목표 여유
+     * </pre>
+     * 실제 여유만 보면 오버핏 20cm 와 슬림 20cm 를 구분할 수 없습니다.
+     *
+     * <p>사이즈마다 값이 다를 수 있어(슬랙스 허리 2.5 / 2.1 / 1.8)
+     * 의류가 아니라 사이즈에 답니다.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "target_ease", columnDefinition = "jsonb")
+    private Map<String, Double> targetEase;
+
     /** 해당 사이즈의 사전 계산 GLB 주소. */
     @Column(name = "model_url", length = 500)
     private String modelUrl;
 
     @Builder
-    private GarmentSizeSpec(Garment garment, String size,
-                            Map<String, Double> measurements, String modelUrl) {
+    private GarmentSizeSpec(Garment garment, String size, Map<String, Double> measurements,
+                            Map<String, Double> targetEase, String modelUrl) {
         this.garment = garment;
         this.size = size;
         this.measurements = measurements;
+        this.targetEase = targetEase;
         this.modelUrl = modelUrl;
     }
 }
