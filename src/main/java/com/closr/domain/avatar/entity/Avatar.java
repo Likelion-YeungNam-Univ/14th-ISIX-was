@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.List;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -69,10 +70,21 @@ public class Avatar extends BaseTimeEntity {
     /** AI 서버가 보고한 인식 신뢰도. */
     private Double confidence;
 
+    /**
+     * 신뢰도 관련 경고 목록.
+     *
+     * <p>confidence 가 0.6 미만이거나 이 값이 비어있지 않으면
+     * 프론트가 재촬영 안내 배지를 노출합니다.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<String> warnings;
+
     @Builder
     private Avatar(Session session, String jobId, String status,
                    Integer height, Integer weight, String glbUrl,
-                   Map<String, Double> measurements, Double confidence) {
+                   Map<String, Double> measurements, Double confidence,
+                   List<String> warnings) {
         this.session = session;
         this.jobId = jobId;
         this.status = status;
@@ -81,12 +93,16 @@ public class Avatar extends BaseTimeEntity {
         this.glbUrl = glbUrl;
         this.measurements = measurements;
         this.confidence = confidence;
+        this.warnings = warnings;
     }
-    public void markDone(String glbUrl, Map<String, Double> measurements, Double confidence) {
+
+    public void markDone(String glbUrl, Map<String, Double> measurements,
+                         Double confidence, List<String> warnings) {
         this.status = "done";
         this.glbUrl = glbUrl;
         this.measurements = measurements;
         this.confidence = confidence;
+        this.warnings = warnings;
     }
 
     public void markFailed() {

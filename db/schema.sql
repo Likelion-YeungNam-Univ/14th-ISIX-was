@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS avatars (
     weight_kg    integer,
     glb_url      varchar(500),
     measurements jsonb,
+    warnings     jsonb,
     confidence   double precision,
     created_at   timestamp(6),
     updated_at   timestamp(6),
