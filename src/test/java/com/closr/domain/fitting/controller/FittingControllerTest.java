@@ -1,76 +1,110 @@
 package com.closr.domain.fitting.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.closr.domain.fitting.dto.ResponseFitPartDto;
+import com.closr.domain.fitting.dto.ResponseFittingDto;
+import com.closr.domain.fitting.dto.ResponseSizeDetailDto;
+import com.closr.domain.fitting.dto.ResponseSizeOptionsDto;
+import com.closr.domain.fitting.service.FittingService;
+import com.closr.domain.user.entity.Session;
 import com.closr.domain.user.service.SessionService;
+import java.util.List;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.hamcrest.Matchers;
 
 /**
- * 피팅 목 컨트롤러 응답 계약 테스트.
+ * 피팅 컨트롤러 응답 계약 테스트.
  *
- * <p>목 컨트롤러라 값 자체보다 <b>응답 구조</b>를 고정하는 것이 목적입니다.
- * 프론트가 이 형태에 맞춰 화면을 붙이므로, 명세가 바뀌면 여기서 먼저 깨져야 합니다.
+ * <p>프론트가 이 형태로 화면을 그리므로 구조를 고정합니다.
+ * 판정 계산 자체는 {@code FittingServiceTest} 에서 확인합니다.
  */
 @WebMvcTest(FittingController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class FittingControllerTest {
 
+    private static final String PATH = "/api/v1/avatars/{avatarId}/garments/{garmentId}/fit";
+
+    @MockBean
+    private FittingService fittingService;
+
     @MockBean
     private SessionService sessionService;
-
-    private static final String PATH = "/api/v1/avatars/{avatarId}/garments/{garmentId}/fit";
 
     @Autowired
     private MockMvc mockMvc;
 
+    private Session session;
+
+    @BeforeEach
+    void setUp() {
+        session = Mockito.mock(Session.class);
+    }
+
+    private ResponseSizeDetailDto size(boolean recommended, boolean wearable, String verdict) {
+        return new ResponseSizeDetailDto(
+                null,
+                List.of(new ResponseFitPartDto("chest_circ", 11.0, 14.0, -3.0, verdict, "green")),
+                0.0,
+                3.0,
+                wearable,
+                recommended);
+    }
+
     @Test
-    @DisplayName("요청한 garmentId 를 그대로 돌려준다")
-    void returnsRequestedGarmentId() throws Exception {
-        mockMvc.perform(get(PATH, 1, 42))
+    @DisplayName("사이즈별 판정과 추천 사이즈를 반환한다")
+    void returnsFittingResult() throws Exception {
+        given(fittingService.getFitting(any(), eq(1L), eq(2L))).willReturn(new ResponseFittingDto(
+                2L,
+                new ResponseSizeOptionsDto(
+                        size(true, true, "적정"),
+                        size(false, true, "여유 있음"),
+                        size(false, false, "꽉 낌")),
+                "S",
+                "가슴둘레 88.0cm 기준 S 사이즈가 모든 부위에서 적정합니다."));
+
+        mockMvc.perform(get(PATH, 1, 2).requestAttr("session", session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.garmentId").value(42));
+                .andExpect(jsonPath("$.data.garmentId").value(2))
+                .andExpect(jsonPath("$.data.recommendedSize").value("S"))
+                .andExpect(jsonPath("$.data.sizes.S.recommended").value(true))
+                .andExpect(jsonPath("$.data.sizes.S.wearable").value(true))
+                .andExpect(jsonPath("$.data.sizes.S.penalty").value(0.0))
+                .andExpect(jsonPath("$.data.sizes.S.totalDev").value(3.0))
+                .andExpect(jsonPath("$.data.sizes.L.wearable").value(false));
     }
 
     @Test
-    @DisplayName("S · M · L 세 사이즈를 모두 반환하고 M 만 추천으로 표시한다")
-    void returnsThreeSizesWithOnlyMediumRecommended() throws Exception {
-        mockMvc.perform(get(PATH, 1, 42))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.recommendedSize").value("M"))
-                .andExpect(jsonPath("$.data.sizes.S.recommended").value(false))
-                .andExpect(jsonPath("$.data.sizes.M.recommended").value(true))
-                .andExpect(jsonPath("$.data.sizes.L.recommended").value(false));
-    }
+    @DisplayName("부위별로 여유량 · 목표 여유 · 편차 · 판정을 함께 반환한다")
+    void returnsDeviationDetailsPerPart() throws Exception {
+        given(fittingService.getFitting(any(), eq(1L), eq(2L))).willReturn(new ResponseFittingDto(
+                2L,
+                new ResponseSizeOptionsDto(size(true, true, "적정"), null, null),
+                "S",
+                "사유"));
 
-    @Test
-    @DisplayName("사이즈마다 부위 5개의 여유량과 판정을 반환한다")
-    void returnsFivePartsPerSize() throws Exception {
-        mockMvc.perform(get(PATH, 1, 42))
+        mockMvc.perform(get(PATH, 1, 2).requestAttr("session", session))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.sizes.M.parts", Matchers.hasSize(5)))
-                .andExpect(jsonPath("$.data.sizes.M.parts[0].part").value("shoulder_width"))
-                .andExpect(jsonPath("$.data.sizes.M.parts[0].ease").value(1.2))
-                .andExpect(jsonPath("$.data.sizes.M.parts[0].verdict").value("good"));
-    }
-
-    @Test
-    @DisplayName("여유량이 음수인 부위는 tight, 기준을 넘으면 loose 로 판정한다")
-    void classifiesEaseIntoVerdict() throws Exception {
-        mockMvc.perform(get(PATH, 1, 42))
-                .andExpect(status().isOk())
-                // S 의 어깨는 -0.8 이라 조입니다.
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].verdict").value("tight"))
-                // L 의 가슴은 10.8 이라 남습니다.
-                .andExpect(jsonPath("$.data.sizes.L.parts[1].verdict").value("loose"));
+                .andExpect(jsonPath("$.data.sizes.S.parts", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.data.sizes.S.parts[0].part").value("chest_circ"))
+                .andExpect(jsonPath("$.data.sizes.S.parts[0].actualEase").value(11.0))
+                .andExpect(jsonPath("$.data.sizes.S.parts[0].refEase").value(14.0))
+                .andExpect(jsonPath("$.data.sizes.S.parts[0].deviation").value(-3.0))
+                .andExpect(jsonPath("$.data.sizes.S.parts[0].verdict").value("적정"))
+                .andExpect(jsonPath("$.data.sizes.S.parts[0].color").value("green"));
     }
 }

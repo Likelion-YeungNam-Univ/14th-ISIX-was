@@ -31,6 +31,8 @@ public enum ErrorCode {
     LOW_CONFIDENCE(HttpStatus.UNPROCESSABLE_ENTITY,
             "인식 정확도가 낮습니다. 몸선이 드러나는 옷으로 다시 촬영해주세요"),
     AVATAR_NOT_FOUND(HttpStatus.NOT_FOUND, "아바타를 찾을 수 없습니다"),
+    AVATAR_NOT_READY(HttpStatus.CONFLICT,
+            "아바타 생성이 아직 끝나지 않았습니다. 잠시 후 다시 시도해주세요"),
     JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다"),
 
     // 의류 · 피팅
