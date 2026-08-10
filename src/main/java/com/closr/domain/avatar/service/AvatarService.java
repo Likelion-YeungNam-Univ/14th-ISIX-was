@@ -98,11 +98,6 @@ public class AvatarService {
         // 세션에 해당하는 모든 아바타 최신순으로 싹 다 가져오기
         List<Avatar> avatars = avatarRepository.findAllBySessionOrderByCreatedAtDesc(session);
 
-        // processing 상태로 굳어있는 애들 혹시 있으면 한 번 더 찔러보기
-        avatars.stream()
-                .filter(avatar -> STATUS_PROCESSING.equals(avatar.getStatus()))
-                .forEach(this::syncFromAiServer);
-
         return avatars;
     }
 }
