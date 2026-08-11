@@ -32,8 +32,23 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ChatHistoryService {
 
-    /** AI 서버로 보낼 최근 턴 수. 토큰 비용이 대화 길이에 비례해 늘어 상한을 둡니다. */
-    private static final int HISTORY_LIMIT = 20;
+    /**
+     * AI 서버로 보낼 최근 턴 수.
+     *
+     * <p>상한을 두는 이유는 비용이 아니라 실패입니다. LLM 은 무상태라 매 턴 이전
+     * 대화를 전부 다시 보내야 하는데, 무제한으로 두면 결국 모델 컨텍스트 한계를
+     * 넘어 요청 자체가 실패합니다. 느려지는 것이 아니라 답을 못 합니다.
+     *
+     * <p>음성 상담은 발화가 짧아(턴당 약 100토큰) 40턴이 4,000토큰 남짓입니다.
+     * 20턴에서 40턴으로 올려도 1,000턴 기준 몇 달러 차이라, 사용자가 초반에 말한
+     * 제약("오버핏은 싫어요")이 창 밖으로 밀려나 챗봇이 모순된 답을 하는 쪽이
+     * 더 비쌉니다.
+     *
+     * <p>대화가 이 값을 넘겨 앞부분을 기억해야 하는 상황이 실제로 생기면, 밀려나는
+     * 대화를 요약해 앞에 붙이는 방식을 검토합니다. 요약에 LLM 호출이 한 번 더
+     * 들어가므로 필요해진 뒤에 넣습니다.
+     */
+    private static final int HISTORY_LIMIT = 40;
 
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository chatMessageRepository;
