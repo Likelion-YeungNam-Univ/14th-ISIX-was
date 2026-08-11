@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 상담 모드.
+ * 챗봇 모드.
  *
  * <p>배치된 화면에 따라 챗봇이 아는 정보가 다릅니다. 홈에서는 아바타가 없어
  * 치수를 모르고, 피팅룸에서는 치수와 핏 리포트를 근거로 답합니다. AI 서버가
@@ -33,6 +33,6 @@ public enum ChatMode {
                 return mode;
             }
         }
-        throw new IllegalArgumentException("알 수 없는 상담 모드입니다: " + value);
+        throw new IllegalArgumentException("알 수 없는 챗봇 모드입니다: " + value);
     }
 }

@@ -39,7 +39,7 @@ public enum ErrorCode {
     GARMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "의류를 찾을 수 없습니다"),
     FITTING_NOT_AVAILABLE(HttpStatus.NOT_FOUND, "해당 조합은 준비 중입니다. 다른 사이즈를 선택해주세요"),
 
-    // AI 상담
+    // AI 챗봇
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "대화를 찾을 수 없습니다"),
 
     // 외부 연동

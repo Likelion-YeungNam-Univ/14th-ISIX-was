@@ -20,7 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * AI 상담 대화.
+ * AI 챗봇 대화.
  *
  * <p>대화 한 건이 메시지 여러 개를 가집니다. LLM API 는 무상태라서 매 턴마다
  * 이전 대화를 전부 다시 보내야 하는데, 그 히스토리를 여기에 보관합니다.
@@ -60,9 +60,9 @@ public class Conversation extends BaseTimeEntity {
     private ChatMode mode;
 
     /**
-     * 상담 대상 아바타. onboarding 모드면 비어 있습니다.
+     * 대화 대상 아바타. onboarding 모드면 비어 있습니다.
      *
-     * <p>홈 화면 상담은 아바타 생성 이전 단계라 붙일 아바타가 없습니다.
+     * <p>홈 화면 대화는 아바타 생성 이전 단계라 붙일 아바타가 없습니다.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "avatar_id")

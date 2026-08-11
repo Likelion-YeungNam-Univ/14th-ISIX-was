@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>매핑과 스웨거 명세는 {@link ChatHistoryApi} 에 있습니다.
  *
- * <p>상담 요청(POST /api/v1/chat)은 SSE 스트리밍이라 별도 컨트롤러로 분리합니다.
+ * <p>챗봇 요청(POST /api/v1/chat)은 SSE 스트리밍이라 별도 컨트롤러로 분리합니다.
  * 응답 형태가 달라 같은 클래스에 두면 공통 래퍼 규약이 섞입니다.
  */
 @RestController

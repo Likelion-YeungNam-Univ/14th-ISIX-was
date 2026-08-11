@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@Tag(name = "Chat", description = "AI 상담 API")
+@Tag(name = "Chat", description = "AI 챗봇 API")
 @RequestMapping("/api/v1/chat")
 public interface ChatHistoryApi {
 
     @Operation(summary = "대화 기록 조회",
-            description = "저장된 대화를 오래된 순으로 반환합니다. 새로고침 후 상담 화면을 복원할 때 사용합니다. "
+            description = "저장된 대화를 오래된 순으로 반환합니다. 새로고침 후 챗봇 화면을 복원할 때 사용합니다. "
                     + "다른 세션의 대화는 존재 여부를 감추기 위해 404 로 응답합니다.")
     @GetMapping("/{conversationId}")
     ResponseEntity<ApiResponse<ResponseChatHistoryDto>> getHistory(
