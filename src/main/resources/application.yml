@@ -46,6 +46,16 @@ springdoc:
 cors:
   origins: ${CORS_ORIGINS:http://localhost:5173}
 
+closr:
+  assets:
+    # 사전 계산된 GLB · 여유량 파일이 올라간 R2 공개 주소입니다.
+    # 파일명은 {design}_{size}__{bucket}.glb / ..._ease.json 이고
+    # 사이즈는 반드시 소문자입니다. R2 가 키 대소문자를 구분합니다.
+    #
+    # 기본값을 두는 이유 — 이 주소는 비밀이 아니고 프론트가 그대로 받아 갑니다.
+    # 값이 없어 기동에 실패하면 로컬 개발자가 R2 설정 없이는 서버를 못 띄웁니다.
+    base-url: ${ASSETS_BASE_URL:https://pub-1aa68cdb548b4177a7d828625c6f6bdb.r2.dev/garments/v1}
+
 ai:
   server:
     url: ${AI_SERVER_URL:http://localhost:8000}

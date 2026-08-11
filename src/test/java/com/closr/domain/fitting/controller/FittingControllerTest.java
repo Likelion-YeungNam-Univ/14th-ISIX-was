@@ -11,6 +11,7 @@ import com.closr.domain.fitting.dto.ResponseFitPartDto;
 import com.closr.domain.fitting.dto.ResponseFittingDto;
 import com.closr.domain.fitting.dto.ResponseSizeDetailDto;
 import com.closr.domain.fitting.dto.ResponseSizeOptionsDto;
+import com.closr.domain.garment.UnavailableReason;
 import com.closr.domain.fitting.service.FittingService;
 import com.closr.domain.user.entity.Session;
 import com.closr.domain.user.service.SessionService;
@@ -56,12 +57,27 @@ class FittingControllerTest {
 
     private ResponseSizeDetailDto size(boolean recommended, boolean wearable, String verdict) {
         return new ResponseSizeDetailDto(
+                "https://assets.example/garments/v1/tshirt_basic_s__H1B1.glb",
+                "https://assets.example/garments/v1/tshirt_basic_s__H1B1_ease.json",
                 null,
                 List.of(new ResponseFitPartDto("chest_circ", 11.0, 14.0, -3.0, verdict, "green")),
                 0.0,
                 3.0,
                 wearable,
                 recommended);
+    }
+
+    /** 착용 불가 조합. 주소가 없고 사유만 있습니다. */
+    private ResponseSizeDetailDto unavailableSize() {
+        return new ResponseSizeDetailDto(
+                null,
+                null,
+                UnavailableReason.TOO_SMALL,
+                List.of(new ResponseFitPartDto("chest_circ", -2.0, 8.0, -10.0, "꽉 낌", "red")),
+                10.0,
+                10.0,
+                false,
+                false);
     }
 
     @Test
@@ -73,19 +89,19 @@ class FittingControllerTest {
                         size(true, true, "적정"),
                         size(false, true, "여유 있음"),
                         size(false, false, "꽉 낌")),
-                "S",
+                "s",
                 "가슴둘레 88.0cm 기준 S 사이즈가 모든 부위에서 적정합니다."));
 
         mockMvc.perform(get(PATH, 1, 2).requestAttr("session", session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.garmentId").value(2))
-                .andExpect(jsonPath("$.data.recommendedSize").value("S"))
-                .andExpect(jsonPath("$.data.sizes.S.recommended").value(true))
-                .andExpect(jsonPath("$.data.sizes.S.wearable").value(true))
-                .andExpect(jsonPath("$.data.sizes.S.penalty").value(0.0))
-                .andExpect(jsonPath("$.data.sizes.S.totalDev").value(3.0))
-                .andExpect(jsonPath("$.data.sizes.L.wearable").value(false));
+                .andExpect(jsonPath("$.data.recommendedSize").value("s"))
+                .andExpect(jsonPath("$.data.sizes.s.recommended").value(true))
+                .andExpect(jsonPath("$.data.sizes.s.wearable").value(true))
+                .andExpect(jsonPath("$.data.sizes.s.penalty").value(0.0))
+                .andExpect(jsonPath("$.data.sizes.s.totalDev").value(3.0))
+                .andExpect(jsonPath("$.data.sizes.l.wearable").value(false));
     }
 
     @Test
@@ -94,17 +110,40 @@ class FittingControllerTest {
         given(fittingService.getFitting(any(), eq(1L), eq(2L))).willReturn(new ResponseFittingDto(
                 2L,
                 new ResponseSizeOptionsDto(size(true, true, "적정"), null, null),
-                "S",
+                "s",
                 "사유"));
 
         mockMvc.perform(get(PATH, 1, 2).requestAttr("session", session))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.sizes.S.parts", Matchers.hasSize(1)))
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].part").value("chest_circ"))
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].actualEase").value(11.0))
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].refEase").value(14.0))
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].deviation").value(-3.0))
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].verdict").value("적정"))
-                .andExpect(jsonPath("$.data.sizes.S.parts[0].color").value("green"));
+                .andExpect(jsonPath("$.data.sizes.s.parts", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.data.sizes.s.parts[0].part").value("chest_circ"))
+                .andExpect(jsonPath("$.data.sizes.s.parts[0].actualEase").value(11.0))
+                .andExpect(jsonPath("$.data.sizes.s.parts[0].refEase").value(14.0))
+                .andExpect(jsonPath("$.data.sizes.s.parts[0].deviation").value(-3.0))
+                .andExpect(jsonPath("$.data.sizes.s.parts[0].verdict").value("적정"))
+                .andExpect(jsonPath("$.data.sizes.s.parts[0].color").value("green"));
+    }
+
+    @Test
+    @DisplayName("착용 불가 조합은 주소 없이 사유를 내려주고 판정은 그대로 담는다")
+    void returnsUnavailableReasonWithoutUrls() throws Exception {
+        given(fittingService.getFitting(any(), eq(1L), eq(2L))).willReturn(new ResponseFittingDto(
+                2L,
+                new ResponseSizeOptionsDto(unavailableSize(), size(true, true, "적정"), null),
+                "m",
+                "S 는 옷이 몸보다 작아 착용이 어렵습니다."));
+
+        mockMvc.perform(get(PATH, 1, 2).requestAttr("session", session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sizes.s.unavailableReason").value("TOO_SMALL"))
+                .andExpect(jsonPath("$.data.sizes.s.glbUrl").doesNotExist())
+                .andExpect(jsonPath("$.data.sizes.s.easeUrl").doesNotExist())
+                // 미리보기만 없고 판정은 그대로 내려갑니다.
+                .andExpect(jsonPath("$.data.sizes.s.parts", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.data.sizes.m.unavailableReason").doesNotExist())
+                .andExpect(jsonPath("$.data.sizes.m.glbUrl").value(
+                        "https://assets.example/garments/v1/tshirt_basic_s__H1B1.glb"))
+                .andExpect(jsonPath("$.data.sizes.m.easeUrl").value(
+                        "https://assets.example/garments/v1/tshirt_basic_s__H1B1_ease.json"));
     }
 }

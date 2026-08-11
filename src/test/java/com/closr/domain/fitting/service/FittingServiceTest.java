@@ -3,13 +3,17 @@ package com.closr.domain.fitting.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.BDDMockito.given;
 
+import com.closr.domain.avatar.BodyGridMatcher;
 import com.closr.domain.avatar.entity.Avatar;
 import com.closr.domain.avatar.repository.AvatarRepository;
 import com.closr.domain.fitting.dto.ResponseFitPartDto;
 import com.closr.domain.fitting.dto.ResponseFittingDto;
 import com.closr.domain.fitting.dto.ResponseSizeDetailDto;
+import com.closr.domain.garment.GarmentAssetResolver;
+import com.closr.domain.garment.UnavailableReason;
 import com.closr.domain.garment.entity.FitTolerance;
 import com.closr.domain.garment.entity.Garment;
 import com.closr.domain.garment.entity.GarmentSizeSpec;
@@ -18,6 +22,7 @@ import com.closr.domain.garment.repository.GarmentRepository;
 import com.closr.domain.garment.repository.GarmentSizeSpecRepository;
 import com.closr.domain.user.entity.Session;
 import com.closr.global.exception.CustomException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,11 +39,14 @@ import org.mockito.Mockito;
  */
 class FittingServiceTest {
 
+    private static final String ASSETS_BASE = "https://assets.example/garments/v1";
+
     private AvatarRepository avatarRepository;
     private GarmentRepository garmentRepository;
     private GarmentSizeSpecRepository garmentSizeSpecRepository;
     private FitToleranceRepository fitToleranceRepository;
     private FittingRecordService fittingRecordService;
+    private BodyGridMatcher bodyGridMatcher;
     private FittingService fittingService;
 
     private Session session;
@@ -52,8 +60,20 @@ class FittingServiceTest {
         fitToleranceRepository = Mockito.mock(FitToleranceRepository.class);
         fittingRecordService = Mockito.mock(FittingRecordService.class);
 
+        // 착용 불가 목록은 목이 아니라 실제 missing_combos.json 을 읽습니다. 주소 조합이
+        // 파일명 규칙과 어긋나면 R2 에서 404 가 나는데, 목으로 덮으면 그걸 못 잡습니다.
+        GarmentAssetResolver assetResolver = new GarmentAssetResolver(
+                new ObjectMapper(), GarmentAssetResolver.DEFAULT_RESOURCE, ASSETS_BASE);
+        assetResolver.load();
+
+        // 구간 배정은 BodyGridMatcherTest 에서 이미 검증합니다. 여기서는 어떤 구간이
+        // 나왔을 때 주소가 어떻게 조합되는지만 보므로 값을 직접 정해줍니다.
+        bodyGridMatcher = Mockito.mock(BodyGridMatcher.class);
+        given(bodyGridMatcher.assign(anyDouble(), anyDouble())).willReturn("H1B1");
+
         fittingService = new FittingService(avatarRepository, garmentRepository,
-                garmentSizeSpecRepository, fitToleranceRepository, fittingRecordService);
+                garmentSizeSpecRepository, fitToleranceRepository, fittingRecordService,
+                bodyGridMatcher, assetResolver);
 
         session = Mockito.mock(Session.class);
         given(session.getId()).willReturn(1L);
@@ -68,9 +88,9 @@ class FittingServiceTest {
                 FitTolerance.builder().fit("레귤러").part("shoulder_width").devMin(-1.0).devMax(2.0).build()
         ));
         given(garmentSizeSpecRepository.findByGarmentIdIn(any())).willReturn(List.of(
-                spec("S", 99.0, 35.0, 14.0, -2.0),
-                spec("M", 108.0, 37.0, 14.0, -2.0),
-                spec("L", 114.0, 38.7, 14.0, -1.8)
+                spec("s", 99.0, 35.0, 14.0, -2.0),
+                spec("m", 108.0, 37.0, 14.0, -2.0),
+                spec("l", 114.0, 38.7, 14.0, -1.8)
         ));
     }
 
@@ -85,15 +105,19 @@ class FittingServiceTest {
     }
 
     private void givenAvatar(Map<String, Double> measurements) {
+        givenAvatar(measurements, 162);
+    }
+
+    private void givenAvatar(Map<String, Double> measurements, Integer height) {
         Avatar avatar = Avatar.builder()
-                .session(session).status("done").measurements(measurements).build();
+                .session(session).status("done").height(height).measurements(measurements).build();
         given(avatarRepository.findById(1L)).willReturn(Optional.of(avatar));
     }
 
     private ResponseSizeDetailDto sizeOf(ResponseFittingDto response, String size) {
         return switch (size) {
-            case "S" -> response.sizes().s();
-            case "M" -> response.sizes().m();
+            case "s" -> response.sizes().s();
+            case "m" -> response.sizes().m();
             default -> response.sizes().l();
         };
     }
@@ -106,9 +130,9 @@ class FittingServiceTest {
 
         ResponseFittingDto response = fittingService.getFitting(session, 1L, 1L);
 
-        assertThat(response.recommendedSize()).isEqualTo("S");
-        assertThat(sizeOf(response, "S").recommended()).isTrue();
-        assertThat(sizeOf(response, "M").recommended()).isFalse();
+        assertThat(response.recommendedSize()).isEqualTo("s");
+        assertThat(sizeOf(response, "s").recommended()).isTrue();
+        assertThat(sizeOf(response, "m").recommended()).isFalse();
     }
 
     @Test
@@ -118,7 +142,7 @@ class FittingServiceTest {
 
         ResponseFittingDto response = fittingService.getFitting(session, 1L, 1L);
 
-        ResponseFitPartDto chest = sizeOf(response, "S").parts().stream()
+        ResponseFitPartDto chest = sizeOf(response, "s").parts().stream()
                 .filter(part -> part.part().equals("chest_circ")).findFirst().orElseThrow();
 
         // 의류 99 - 아바타 88 = 여유 11, 목표 14 이므로 편차 -3 → 허용범위(-4~6) 안
@@ -135,7 +159,7 @@ class FittingServiceTest {
         givenAvatar(Map.of("chest_circ", 88.0, "shoulder_width", 38.0));
 
         ResponseFittingDto response = fittingService.getFitting(session, 1L, 1L);
-        ResponseSizeDetailDto large = sizeOf(response, "L");
+        ResponseSizeDetailDto large = sizeOf(response, "l");
 
         // L 의 가슴 편차는 +12 로 허용범위(-4~6)를 넘습니다
         assertThat(large.parts()).anySatisfy(part -> {
@@ -153,10 +177,10 @@ class FittingServiceTest {
 
         ResponseFittingDto response = fittingService.getFitting(session, 1L, 1L);
 
-        assertThat(sizeOf(response, "S").wearable()).isFalse();
-        assertThat(sizeOf(response, "L").wearable()).isFalse();
+        assertThat(sizeOf(response, "s").wearable()).isFalse();
+        assertThat(sizeOf(response, "l").wearable()).isFalse();
         // 전부 불가여도 가장 덜 심한 것을 추천합니다
-        assertThat(response.recommendedSize()).isEqualTo("L");
+        assertThat(response.recommendedSize()).isEqualTo("l");
         assertThat(response.recommendationReason()).contains("꽉");
     }
 
@@ -183,5 +207,98 @@ class FittingServiceTest {
         assertThatThrownBy(() -> fittingService.getFitting(session, 1L, 1L))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("접근 권한");
+    }
+
+    @Test
+    @DisplayName("체형 구간을 붙여 GLB · 여유량 주소를 조합한다")
+    void composesAssetUrlsWithBodyBucket() {
+        // 키 162 · 가슴 88 → H1B1
+        givenAvatar(Map.of("chest_circ", 88.0, "shoulder_width", 38.0));
+
+        ResponseFittingDto response = fittingService.getFitting(session, 1L, 1L);
+        ResponseSizeDetailDto medium = sizeOf(response, "m");
+
+        assertThat(medium.glbUrl())
+                .isEqualTo(ASSETS_BASE + "/tshirt_basic_m__H1B1.glb");
+        // .json 이 아니라 _ease.json 입니다. R2 에 올라간 파일명이 그렇습니다.
+        assertThat(medium.easeUrl())
+                .isEqualTo(ASSETS_BASE + "/tshirt_basic_m__H1B1_ease.json");
+        assertThat(medium.unavailableReason()).isNull();
+    }
+
+    @Test
+    @DisplayName("사이즈가 대문자로 저장돼 있어도 주소는 소문자로 조합한다")
+    void lowercasesSizeInAssetUrl() {
+        // R2 는 키 대소문자를 구분해서 _M__ 로 조합하면 404 가 납니다.
+        given(garmentSizeSpecRepository.findByGarmentIdIn(any())).willReturn(List.of(
+                spec("S", 99.0, 35.0, 14.0, -2.0),
+                spec("M", 108.0, 37.0, 14.0, -2.0),
+                spec("L", 114.0, 38.7, 14.0, -1.8)
+        ));
+        givenAvatar(Map.of("chest_circ", 88.0, "shoulder_width", 38.0));
+
+        ResponseFittingDto response = fittingService.getFitting(session, 1L, 1L);
+
+        assertThat(response.recommendedSize()).isEqualTo("s");
+        assertThat(response.sizes().m()).isNotNull();
+        assertThat(sizeOf(response, "m").glbUrl())
+                .isEqualTo(ASSETS_BASE + "/tshirt_basic_m__H1B1.glb");
+    }
+
+    @Test
+    @DisplayName("착용 불가 조합은 주소 없이 사유만 내려주고 판정은 그대로 제공한다")
+    void marksImpossibleCombinationUnavailable() {
+        // shirt_slim_s__H2B2 는 missing_combos.json 에 있는 조합입니다.
+        // 옷 둘레가 체형 가슴둘레보다 작아 시뮬 실패가 정상 결과입니다.
+        Garment slim = Garment.builder()
+                .design("shirt_slim").name("슬림 셔츠").category("top").fit("슬림").build();
+        given(garmentRepository.findById(2L)).willReturn(Optional.of(slim));
+        given(fitToleranceRepository.findByFit("슬림")).willReturn(List.of(
+                FitTolerance.builder().fit("슬림").part("chest_circ").devMin(-2.0).devMax(3.0).build()
+        ));
+        given(garmentSizeSpecRepository.findByGarmentIdIn(any())).willReturn(List.of(
+                slimSpec(slim, "s", 93.0), slimSpec(slim, "m", 102.0), slimSpec(slim, "l", 108.0)
+        ));
+
+        given(bodyGridMatcher.assign(anyDouble(), anyDouble())).willReturn("H2B2");
+        givenAvatar(Map.of("chest_circ", 95.0), 170);
+
+        ResponseFittingDto response = fittingService.getFitting(session, 1L, 2L);
+        ResponseSizeDetailDto small = sizeOf(response, "s");
+
+        assertThat(small.unavailableReason()).isEqualTo(UnavailableReason.TOO_SMALL);
+        assertThat(small.glbUrl()).isNull();
+        assertThat(small.easeUrl()).isNull();
+        // 미리보기만 없고 판정은 정상입니다. "안 맞습니다" 가 정답이므로 에러가 아닙니다.
+        assertThat(small.parts()).isNotEmpty();
+
+        // 같은 체형의 m 은 파일이 있어 정상입니다.
+        ResponseSizeDetailDto medium = sizeOf(response, "m");
+        assertThat(medium.unavailableReason()).isNull();
+        assertThat(medium.glbUrl()).isEqualTo(ASSETS_BASE + "/shirt_slim_m__H2B2.glb");
+    }
+
+    @Test
+    @DisplayName("키가 없어 체형 구간을 못 정하면 판정만 내려준다")
+    void returnsJudgementWithoutPreviewWhenBucketUnknown() {
+        givenAvatar(Map.of("chest_circ", 88.0, "shoulder_width", 38.0), null);
+
+        ResponseFittingDto response = fittingService.getFitting(session, 1L, 1L);
+        ResponseSizeDetailDto small = sizeOf(response, "s");
+
+        assertThat(small.unavailableReason()).isEqualTo(UnavailableReason.SIMULATION_FAILED);
+        assertThat(small.glbUrl()).isNull();
+        // 판정은 실측으로 하므로 구간이 없어도 나옵니다.
+        assertThat(small.parts()).isNotEmpty();
+        assertThat(response.recommendedSize()).isEqualTo("s");
+    }
+
+    private GarmentSizeSpec slimSpec(Garment slim, String size, double chest) {
+        return GarmentSizeSpec.builder()
+                .garment(slim)
+                .size(size)
+                .measurements(Map.of("chest_circ", chest))
+                .targetEase(Map.of("chest_circ", 8.0))
+                .build();
     }
 }
