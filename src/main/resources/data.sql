@@ -46,6 +46,22 @@ ON CONFLICT (design) DO UPDATE
 -- 소문자로 통일하는 이유는 R2 파일명입니다. 키가
 -- {design}_{size}__{bucket}.glb 이고 R2 는 대소문자를 구분하므로,
 -- 'M' 을 그대로 조합하면 _M__ 이 되어 404 가 납니다.
+-- 이미 소문자 행이 있는 상태에서 대문자 행을 lower() 하면 유니크 키
+-- uk_garment_size (garment_id, size) 에 걸려 기동이 실패합니다.
+--   ERROR: duplicate key value violates unique constraint "uk_garment_size"
+-- 그러면 dataSourceScriptDatabaseInitializer 빈 생성이 깨져 서버가 아예 뜨지 않습니다.
+--
+-- 두 표기가 섞이는 경로는 둘입니다.
+--   브랜치를 옮겨 다니며 테스트를 돌린 로컬 DB
+--   운영에 db/seed_garments.sql 을 수동으로 먼저 돌린 뒤 배포
+--
+-- 그래서 짝이 있는 대문자 행은 먼저 지우고, 남은 것만 소문자로 내립니다.
+-- 지운 자리는 아래 INSERT 가 다시 채우므로 데이터가 사라지지 않습니다.
+DELETE FROM garment_size_specs u
+ WHERE u.size <> lower(u.size)
+   AND EXISTS (SELECT 1 FROM garment_size_specs l
+                WHERE l.garment_id = u.garment_id AND l.size = lower(u.size));
+
 UPDATE garment_size_specs SET size = lower(size) WHERE size <> lower(size);
 UPDATE fitting_records   SET recommended_size = lower(recommended_size)
  WHERE recommended_size IS NOT NULL AND recommended_size <> lower(recommended_size);
