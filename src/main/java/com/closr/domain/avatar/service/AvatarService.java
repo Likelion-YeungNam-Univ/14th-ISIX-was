@@ -83,9 +83,8 @@ public class AvatarService {
 
         if (response.isDone()) {
             AiAvatarResponse.Result result = data.result();
-            // NPE 방어: done 상태인데 result가 비어있을 확률 방어
             if (result != null) {
-                avatar.markDone(result.glbUrl(), result.measurements(), result.confidence());
+                avatar.markDone(result.glbUrl(), result.measurements(), result.confidence(), result.warnings());
             }
         } else if (STATUS_FAILED.equals(data.status())) {
             avatar.markFailed();

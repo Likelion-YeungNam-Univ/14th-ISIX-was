@@ -67,7 +67,9 @@ public class AvatarController implements AvatarApi {
                 avatar.getId(),
                 avatar.getJobId(),
                 avatar.getGlbUrl(),
-                avatar.getMeasurements()
+                avatar.getMeasurements(),
+                avatar.getConfidence(),
+                avatar.getWarnings()
         );
     }
 }
