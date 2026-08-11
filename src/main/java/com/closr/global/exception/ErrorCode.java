@@ -39,6 +39,9 @@ public enum ErrorCode {
     GARMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "의류를 찾을 수 없습니다"),
     FITTING_NOT_AVAILABLE(HttpStatus.NOT_FOUND, "해당 조합은 준비 중입니다. 다른 사이즈를 선택해주세요"),
 
+    // AI 상담
+    CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "대화를 찾을 수 없습니다"),
+
     // 외부 연동
     AI_SERVER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE,
             "아바타 생성 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요"),
