@@ -37,27 +37,40 @@ ON CONFLICT (design) DO UPDATE
 -- 정의가 같은지 확인되지 않아 제외했습니다.
 --
 -- design 으로 garments 를 찾으므로 위 INSERT 가 먼저 실행돼야 합니다.
+-- 사이즈 표기를 소문자로 정리합니다.
+--
+-- 유니크 키가 (garment_id, size) 라서 'M' 이 남아 있는 상태로 'm' 을 넣으면
+-- 충돌이 나지 않고 새 행이 생깁니다. 디자인마다 3행이 6행이 되고 판정이
+-- 사이즈 6개를 대상으로 돌게 됩니다. 그래서 INSERT 전에 먼저 내립니다.
+--
+-- 소문자로 통일하는 이유는 R2 파일명입니다. 키가
+-- {design}_{size}__{bucket}.glb 이고 R2 는 대소문자를 구분하므로,
+-- 'M' 을 그대로 조합하면 _M__ 이 되어 404 가 납니다.
+UPDATE garment_size_specs SET size = lower(size) WHERE size <> lower(size);
+UPDATE fitting_records   SET recommended_size = lower(recommended_size)
+ WHERE recommended_size IS NOT NULL AND recommended_size <> lower(recommended_size);
+
 INSERT INTO garment_size_specs (garment_id, size, measurements, target_ease, created_at, updated_at)
 SELECT g.id, v.size, v.measurements::jsonb, v.target_ease::jsonb, NOW(), NOW()
 FROM (VALUES
-    ('tshirt_basic', 'S', '{"shoulder_width": 35.0, "chest_circ": 99.0}', '{"shoulder_width": -2.0, "chest_circ": 14.0}'),
-    ('tshirt_basic', 'M', '{"shoulder_width": 37.0, "chest_circ": 108.0}', '{"shoulder_width": -2.0, "chest_circ": 14.0}'),
-    ('tshirt_basic', 'L', '{"shoulder_width": 38.7, "chest_circ": 114.0}', '{"shoulder_width": -1.8, "chest_circ": 14.0}'),
-    ('shirt_slim', 'S', '{"shoulder_width": 35.0, "chest_circ": 93.0}', '{"shoulder_width": -2.0, "chest_circ": 8.0}'),
-    ('shirt_slim', 'M', '{"shoulder_width": 37.0, "chest_circ": 102.0}', '{"shoulder_width": -2.0, "chest_circ": 8.0}'),
-    ('shirt_slim', 'L', '{"shoulder_width": 38.6, "chest_circ": 108.0}', '{"shoulder_width": -1.9, "chest_circ": 8.0}'),
-    ('shirt_over', 'S', '{"shoulder_width": 35.0, "chest_circ": 115.0}', '{"shoulder_width": -2.0, "chest_circ": 30.0}'),
-    ('shirt_over', 'M', '{"shoulder_width": 37.0, "chest_circ": 124.0}', '{"shoulder_width": -2.0, "chest_circ": 30.0}'),
-    ('shirt_over', 'L', '{"shoulder_width": 39.1, "chest_circ": 130.0}', '{"shoulder_width": -1.4, "chest_circ": 30.0}'),
-    ('dress_basic', 'S', '{"shoulder_width": 35.0, "chest_circ": 99.0, "hip_circ": 97.0}', '{"shoulder_width": -2.0, "chest_circ": 14.0, "hip_circ": 6.0}'),
-    ('dress_basic', 'M', '{"shoulder_width": 37.0, "chest_circ": 108.0, "hip_circ": 106.0}', '{"shoulder_width": -2.0, "chest_circ": 14.0, "hip_circ": 6.0}'),
-    ('dress_basic', 'L', '{"shoulder_width": 38.7, "chest_circ": 114.0, "hip_circ": 112.0}', '{"shoulder_width": -1.8, "chest_circ": 14.0, "hip_circ": 6.0}'),
-    ('pants_slacks', 'S', '{"waist_circ": 71.5}', '{"waist_circ": 2.5}'),
-    ('pants_slacks', 'M', '{"waist_circ": 80.1}', '{"waist_circ": 2.1}'),
-    ('pants_slacks', 'L', '{"waist_circ": 85.8}', '{"waist_circ": 1.8}'),
-    ('skirt_pencil', 'S', '{"waist_circ": 71.0, "hip_circ": 97.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}'),
-    ('skirt_pencil', 'M', '{"waist_circ": 80.0, "hip_circ": 106.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}'),
-    ('skirt_pencil', 'L', '{"waist_circ": 86.0, "hip_circ": 112.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}')
+    ('tshirt_basic', 's', '{"shoulder_width": 35.0, "chest_circ": 99.0}', '{"shoulder_width": -7.9, "chest_circ": 14.0}'),
+    ('tshirt_basic', 'm', '{"shoulder_width": 37.0, "chest_circ": 108.0}', '{"shoulder_width": -9.0, "chest_circ": 14.0}'),
+    ('tshirt_basic', 'l', '{"shoulder_width": 38.7, "chest_circ": 114.0}', '{"shoulder_width": -8.9, "chest_circ": 14.0}'),
+    ('shirt_slim', 's', '{"shoulder_width": 35.0, "chest_circ": 93.0}', '{"shoulder_width": -7.9, "chest_circ": 8.0}'),
+    ('shirt_slim', 'm', '{"shoulder_width": 37.0, "chest_circ": 102.0}', '{"shoulder_width": -9.0, "chest_circ": 8.0}'),
+    ('shirt_slim', 'l', '{"shoulder_width": 38.6, "chest_circ": 108.0}', '{"shoulder_width": -9.0, "chest_circ": 8.0}'),
+    ('shirt_over', 's', '{"shoulder_width": 35.0, "chest_circ": 115.0}', '{"shoulder_width": -7.9, "chest_circ": 30.0}'),
+    ('shirt_over', 'm', '{"shoulder_width": 37.0, "chest_circ": 124.0}', '{"shoulder_width": -9.0, "chest_circ": 30.0}'),
+    ('shirt_over', 'l', '{"shoulder_width": 39.1, "chest_circ": 130.0}', '{"shoulder_width": -8.5, "chest_circ": 30.0}'),
+    ('dress_basic', 's', '{"shoulder_width": 35.0, "chest_circ": 99.0, "hip_circ": 97.0}', '{"shoulder_width": -7.9, "chest_circ": 14.0, "hip_circ": 6.0}'),
+    ('dress_basic', 'm', '{"shoulder_width": 37.0, "chest_circ": 108.0, "hip_circ": 106.0}', '{"shoulder_width": -9.0, "chest_circ": 14.0, "hip_circ": 6.0}'),
+    ('dress_basic', 'l', '{"shoulder_width": 38.7, "chest_circ": 114.0, "hip_circ": 112.0}', '{"shoulder_width": -8.9, "chest_circ": 14.0, "hip_circ": 6.0}'),
+    ('pants_slacks', 's', '{"waist_circ": 71.5}', '{"waist_circ": 2.5}'),
+    ('pants_slacks', 'm', '{"waist_circ": 80.1}', '{"waist_circ": 2.1}'),
+    ('pants_slacks', 'l', '{"waist_circ": 85.8}', '{"waist_circ": 1.8}'),
+    ('skirt_pencil', 's', '{"waist_circ": 71.0, "hip_circ": 97.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}'),
+    ('skirt_pencil', 'm', '{"waist_circ": 80.0, "hip_circ": 106.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}'),
+    ('skirt_pencil', 'l', '{"waist_circ": 86.0, "hip_circ": 112.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}')
 ) AS v(design, size, measurements, target_ease)
 JOIN garments g ON g.design = v.design
 ON CONFLICT (garment_id, size) DO UPDATE
@@ -78,14 +91,20 @@ FROM (VALUES
     ('슬림', 'chest_circ', -2, 3),
     ('슬림', 'waist_circ', -2, 3),
     ('슬림', 'hip_circ', -2, 3),
-    ('슬림', 'shoulder_width', -1, 1),
+    ('슬림', 'shoulder_width', -2, 2),
     ('레귤러', 'chest_circ', -4, 6),
     ('레귤러', 'waist_circ', -4, 6),
     ('레귤러', 'hip_circ', -4, 6),
-    ('레귤러', 'shoulder_width', -1, 2),
+    ('레귤러', 'shoulder_width', -2, 3),
     ('오버핏', 'chest_circ', -6, 12),
     ('오버핏', 'waist_circ', -6, 12),
     ('오버핏', 'hip_circ', -6, 12),
-    ('오버핏', 'shoulder_width', -1, 4)
+    ('오버핏', 'shoulder_width', -2, 5)
 ) AS v(fit, part, dev_min, dev_max)
-ON CONFLICT (fit, part) DO NOTHING;
+-- DO NOTHING 이면 값이 바뀌어도 기존 행이 그대로 남습니다. 어깨 허용 범위가
+-- 의류 파트 CSV 와 어긋난 채로 판정이 돌던 원인이라 DO UPDATE 로 바꿉니다.
+ON CONFLICT (fit, part) DO UPDATE
+   SET dev_min = EXCLUDED.dev_min,
+       dev_max = EXCLUDED.dev_max
+ WHERE fit_tolerances.dev_min IS DISTINCT FROM EXCLUDED.dev_min
+    OR fit_tolerances.dev_max IS DISTINCT FROM EXCLUDED.dev_max;

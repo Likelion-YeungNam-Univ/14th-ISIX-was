@@ -9,6 +9,7 @@ import com.closr.domain.garment.repository.FitToleranceRepository;
 import com.closr.domain.garment.repository.GarmentRepository;
 import com.closr.domain.garment.repository.GarmentSizeSpecRepository;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +56,7 @@ class SeedDataTest {
     }
 
     @Test
-    @DisplayName("의류마다 S · M · L 스펙이 있고 실측 치수와 목표 여유가 같은 부위를 담는다")
+    @DisplayName("의류마다 s · m · l 스펙이 있고 실측 치수와 목표 여유가 같은 부위를 담는다")
     void everyGarmentHasThreeSizeSpecs() {
         List<Garment> garments = garmentRepository.findAllByOrderByIdAsc();
         List<Long> ids = garments.stream().map(Garment::getId).toList();
@@ -63,7 +64,9 @@ class SeedDataTest {
 
         assertThat(specs).hasSize(18);
         assertThat(specs).allSatisfy(spec -> {
-            assertThat(spec.getSize()).isIn("S", "M", "L");
+            // 소문자입니다. R2 키가 {design}_{size}__{bucket}.glb 이고 R2 는
+            // 대소문자를 구분하므로, 대문자가 섞이면 조합한 주소가 전부 404 가 됩니다.
+            assertThat(spec.getSize()).isIn("s", "m", "l");
             assertThat(spec.getMeasurements()).isNotEmpty();
             assertThat(spec.getTargetEase()).isNotEmpty();
             // 실측 치수가 있는데 목표 여유가 없으면 그 부위는 판정할 수 없습니다.
@@ -83,6 +86,61 @@ class SeedDataTest {
                     .containsExactlyInAnyOrder(
                             "shoulder_width", "chest_circ", "waist_circ", "hip_circ");
         }
+    }
+
+    @Test
+    @DisplayName("어깨 목표 여유가 2026-08-07 재보정 값이다")
+    void shoulderTargetEaseIsRecalibrated() {
+        // 재보정 전 값(-1.4 ~ -2.0)이 남아 있으면 어깨 편차가 약 7cm 여유 있는 쪽으로
+        // 밀려서, 안 맞는 사이즈를 적정으로 판정합니다. 값이 조용히 되돌아가는 것을
+        // 막기 위해 실제 수치를 고정합니다. 출처는 의류 파트의
+        // garment/config/garment_target_ease.csv 입니다.
+        Map<String, Double> expected = Map.ofEntries(
+                Map.entry("tshirt_basic s", -7.9),
+                Map.entry("tshirt_basic m", -9.0),
+                Map.entry("tshirt_basic l", -8.9),
+                Map.entry("shirt_slim s", -7.9),
+                Map.entry("shirt_slim m", -9.0),
+                Map.entry("shirt_slim l", -9.0),
+                Map.entry("shirt_over s", -7.9),
+                Map.entry("shirt_over m", -9.0),
+                Map.entry("shirt_over l", -8.5),
+                Map.entry("dress_basic s", -7.9),
+                Map.entry("dress_basic m", -9.0),
+                Map.entry("dress_basic l", -8.9));
+
+        List<Garment> garments = garmentRepository.findAllByOrderByIdAsc();
+        List<GarmentSizeSpec> specs = garmentSizeSpecRepository.findByGarmentIdIn(
+                garments.stream().map(Garment::getId).toList());
+
+        for (GarmentSizeSpec spec : specs) {
+            Double shoulder = spec.getTargetEase().get("shoulder_width");
+            if (shoulder == null) {
+                continue;   // 하의는 어깨를 판정하지 않습니다.
+            }
+            String key = spec.getGarment().getDesign() + " " + spec.getSize();
+            assertThat(shoulder).as(key).isEqualTo(expected.get(key));
+        }
+    }
+
+    @Test
+    @DisplayName("어깨 허용 범위가 의류 파트 CSV 와 일치한다")
+    void shoulderToleranceMatchesGarmentCsv() {
+        // garment/config/garment_tolerance.csv 의 값입니다. 시드가 -1 로 들어가 있어
+        // 편차 -1.5 인 어깨가 CSV 기준으로는 적정인데 꽉 낌으로 판정되던 문제가 있었습니다.
+        Map<String, double[]> expected = Map.of(
+                "슬림", new double[] {-2.0, 2.0},
+                "레귤러", new double[] {-2.0, 3.0},
+                "오버핏", new double[] {-2.0, 5.0});
+
+        expected.forEach((fit, range) -> {
+            FitTolerance tolerance = fitToleranceRepository.findByFit(fit).stream()
+                    .filter(t -> "shoulder_width".equals(t.getPart()))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(tolerance.getDevMin()).as(fit + " dev_min").isEqualTo(range[0]);
+            assertThat(tolerance.getDevMax()).as(fit + " dev_max").isEqualTo(range[1]);
+        });
     }
 
     @Test
