@@ -75,17 +75,17 @@ public class GarmentSizeSpec extends BaseTimeEntity {
     @Column(name = "target_ease", columnDefinition = "jsonb")
     private Map<String, Double> targetEase;
 
-    /** 해당 사이즈의 사전 계산 GLB 주소. */
-    @Column(name = "model_url", length = 500)
-    private String modelUrl;
+    // GLB 주소를 여기 저장하지 않습니다. 파일이 체형 구간마다 달라
+    // {design}_{size}__{bucket}.glb 로 요청 때 조합해야 하는데, 컬럼에는 구간을 담을
+    // 자리가 없습니다. 실제로 시드가 이 컬럼을 채운 적이 없어 항상 null 이었습니다.
+    // 조합은 GarmentAssetResolver 가 합니다.
 
     @Builder
     private GarmentSizeSpec(Garment garment, String size, Map<String, Double> measurements,
-                            Map<String, Double> targetEase, String modelUrl) {
+                            Map<String, Double> targetEase) {
         this.garment = garment;
         this.size = size;
         this.measurements = measurements;
         this.targetEase = targetEase;
-        this.modelUrl = modelUrl;
     }
 }

@@ -1,5 +1,6 @@
 package com.closr.domain.fitting.service;
 
+import com.closr.domain.avatar.BodyGridMatcher;
 import com.closr.domain.avatar.entity.Avatar;
 import com.closr.domain.avatar.repository.AvatarRepository;
 import com.closr.domain.fitting.FitVerdict;
@@ -7,6 +8,8 @@ import com.closr.domain.fitting.dto.ResponseFitPartDto;
 import com.closr.domain.fitting.dto.ResponseFittingDto;
 import com.closr.domain.fitting.dto.ResponseSizeDetailDto;
 import com.closr.domain.fitting.dto.ResponseSizeOptionsDto;
+import com.closr.domain.garment.GarmentAsset;
+import com.closr.domain.garment.GarmentAssetResolver;
 import com.closr.domain.garment.entity.FitTolerance;
 import com.closr.domain.garment.entity.Garment;
 import com.closr.domain.garment.entity.GarmentSizeSpec;
@@ -20,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -45,6 +49,11 @@ import org.springframework.transaction.annotation.Transactional;
  * 전부 불가능하면 그중 덜 심한 것을 고르되 착용 불가로 표시합니다.
  *
  * <p>시뮬레이션 파트의 {@code fit_judge.py} 와 같은 규칙입니다.
+ *
+ * <p><b>판정은 사용자 실측 치수로만 합니다.</b> 체형 구간은 "보여줄 몸" 을 고르는 데만
+ * 써서 GLB · 여유량 파일 주소를 조합합니다. 격자가 키를 3단계, 가슴을 4단계로 양자화해
+ * 실제 몸과 어긋나기 때문입니다. 화면 맵시와 판정 근거 체형이 갈리는 것은 의도된
+ * 분리입니다({@link BodyGridMatcher} 주석 참고).
  */
 @Slf4j
 @Service
@@ -52,13 +61,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class FittingService {
 
-    private static final List<String> SIZE_ORDER = List.of("S", "M", "L");
+    // DB 시드가 소문자로 통일돼 있습니다. 대문자가 남아 있더라도 normalize 로 맞춥니다.
+    private static final List<String> SIZE_ORDER = List.of("s", "m", "l");
 
     private final AvatarRepository avatarRepository;
     private final GarmentRepository garmentRepository;
     private final GarmentSizeSpecRepository garmentSizeSpecRepository;
     private final FitToleranceRepository fitToleranceRepository;
     private final FittingRecordService fittingRecordService;
+    private final BodyGridMatcher bodyGridMatcher;
+    private final GarmentAssetResolver garmentAssetResolver;
 
     @Transactional
     public ResponseFittingDto getFitting(Session session, Long avatarId, Long garmentId) {
@@ -75,12 +87,12 @@ public class FittingService {
         Map<String, FitTolerance> tolerances = loadTolerances(garment);
 
         List<SizeJudgement> judgements = specs.stream()
-                .sorted(Comparator.comparingInt(spec -> SIZE_ORDER.indexOf(spec.getSize())))
+                .sorted(Comparator.comparingInt(spec -> orderOf(spec.getSize())))
                 .map(spec -> judge(spec, avatar.getMeasurements(), tolerances))
                 .toList();
 
         SizeJudgement best = pickRecommended(judgements);
-        ResponseFittingDto response = toResponse(garmentId, judgements, best, avatar);
+        ResponseFittingDto response = toResponse(garmentId, garment.getDesign(), judgements, best, avatar);
 
         fittingRecordService.save(session, avatar, garment,
                 best.size(), best.wearable(), toRecord(response));
@@ -155,7 +167,7 @@ public class FittingService {
             throw new CustomException(ErrorCode.FITTING_NOT_AVAILABLE);
         }
 
-        return new SizeJudgement(spec.getSize(), spec.getModelUrl(), parts,
+        return new SizeJudgement(normalize(spec.getSize()), parts,
                 round1(penalty), round1(totalDeviation), wearable);
     }
 
@@ -183,12 +195,20 @@ public class FittingService {
                 .orElseThrow(() -> new CustomException(ErrorCode.FITTING_NOT_AVAILABLE));
     }
 
-    private ResponseFittingDto toResponse(Long garmentId, List<SizeJudgement> judgements,
+    private ResponseFittingDto toResponse(Long garmentId, String design,
+                                          List<SizeJudgement> judgements,
                                           SizeJudgement best, Avatar avatar) {
+        String bucket = bucketOf(avatar);
+
         Map<String, ResponseSizeDetailDto> bySize = new LinkedHashMap<>();
         for (SizeJudgement judgement : judgements) {
+            GarmentAsset asset =
+                    garmentAssetResolver.resolve(design, judgement.size(), bucket);
+
             bySize.put(judgement.size(), new ResponseSizeDetailDto(
-                    judgement.modelUrl(),
+                    asset.glbUrl(),
+                    asset.easeUrl(),
+                    asset.unavailableReason(),
                     judgement.parts(),
                     judgement.penalty(),
                     judgement.totalDeviation(),
@@ -198,9 +218,36 @@ public class FittingService {
 
         return new ResponseFittingDto(
                 garmentId,
-                new ResponseSizeOptionsDto(bySize.get("S"), bySize.get("M"), bySize.get("L")),
+                new ResponseSizeOptionsDto(bySize.get("s"), bySize.get("m"), bySize.get("l")),
                 best.size(),
                 reasonFor(best, avatar));
+    }
+
+    /**
+     * 아바타를 체형 12구간 중 하나에 배정합니다. 파일 주소를 조합하는 데만 씁니다.
+     *
+     * <p>정하지 못하면 {@code null} 을 돌려줍니다. 판정은 실측으로 하므로 구간이 없어도
+     * 계속 진행하고, 미리보기만 빠집니다. 여기서 예외를 던지면 판정까지 못 보게 됩니다.
+     */
+    private String bucketOf(Avatar avatar) {
+        Integer height = avatar.getHeight();
+        Double chest = avatar.getMeasurements().get("chest_circ");
+
+        if (height == null || chest == null) {
+            log.warn("체형 구간을 정할 수 없어 미리보기를 제공하지 않습니다. (키 {}, 가슴 {})", height, chest);
+            return null;
+        }
+        return bodyGridMatcher.assign(height, chest);
+    }
+
+    /** 알 수 없는 사이즈는 뒤로 보냅니다. -1 이 되면 s 보다 앞에 오기 때문입니다. */
+    private int orderOf(String size) {
+        int index = SIZE_ORDER.indexOf(normalize(size));
+        return index < 0 ? SIZE_ORDER.size() : index;
+    }
+
+    private String normalize(String size) {
+        return size == null ? null : size.toLowerCase(Locale.ROOT);
     }
 
     private String reasonFor(SizeJudgement best, Avatar avatar) {
@@ -243,7 +290,6 @@ public class FittingService {
     /** 사이즈 하나의 판정 결과. 추천 선택에만 쓰는 penalty · totalDeviation 을 함께 들고 있습니다. */
     private record SizeJudgement(
             String size,
-            String modelUrl,
             List<ResponseFitPartDto> parts,
             double penalty,
             double totalDeviation,
