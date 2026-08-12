@@ -65,12 +65,16 @@ public class Garment extends BaseTimeEntity {
     @Column(name = "thumbnail_url", length = 500)
     private String thumbnailUrl;
 
+    @Column(name = "purchase_url", length = 500)
+    private String purchaseUrl;
+
     @Builder
-    private Garment(String design, String name, String category, String fit, String thumbnailUrl) {
+    private Garment(String design, String name, String category, String fit, String thumbnailUrl, String purchaseUrl) {
         this.design = design;
         this.name = name;
         this.category = category;
         this.fit = fit;
         this.thumbnailUrl = thumbnailUrl;
+        this.purchaseUrl = purchaseUrl;
     }
 }

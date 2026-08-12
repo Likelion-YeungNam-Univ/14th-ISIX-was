@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS garments (
     fit           varchar(20),
     -- 이미지가 아직 없어 시드에서는 비워 둡니다.
     thumbnail_url varchar(500),
+    purchase_url  varchar(500),
     created_at    timestamp(6),
     updated_at    timestamp(6),
     CONSTRAINT uk_garments_design UNIQUE (design)
