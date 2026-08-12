@@ -24,7 +24,7 @@ public class SessionService {
 
         Session newSession = Session.builder()
                 .sessionToken(token)
-                .expiresAt(LocalDateTime.now().plusDays(7))
+                .expiresAt(LocalDateTime.now().plusDays(30))
                 .build();
 
         sessionRepository.save(newSession);
