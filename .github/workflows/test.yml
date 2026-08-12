@@ -1,0 +1,138 @@
+name: 테스트
+
+# deploy.yml 이 develop 대상 PR 에서 이미 ./gradlew build 로 테스트를 돌립니다.
+# 이 워크플로가 따로 있는 이유는 세 가지입니다.
+#
+#   1. deploy.yml 은 base 가 develop 인 PR 만 봅니다. 스택 PR 처럼 다른 브랜치를
+#      대상으로 올리면 아무 검사도 돌지 않습니다.
+#   2. 실패가 "Deploy" 이름으로 보고돼, 배포가 깨진 것인지 테스트가 깨진 것인지
+#      제목만 보고는 알 수 없습니다.
+#   3. 어느 테스트가 왜 깨졌는지 보려면 로그를 펼쳐 스크롤해야 합니다.
+#      여기서는 요약에 실패한 테스트 이름과 메시지를 바로 적습니다.
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+
+# 같은 브랜치에 새 커밋을 올리면 이전 실행을 취소합니다.
+# 이미 뒤처진 결과를 기다리느라 러너를 붙잡아 두지 않습니다.
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 단위 · 통합 테스트
+    runs-on: ubuntu-latest
+
+    # 컨텍스트를 띄우는 테스트에 DB 가 필요합니다.
+    # measurements 가 jsonb 라 H2 로 대체할 수 없어 실제 PostgreSQL 을 씁니다.
+    # 접속 정보는 local 프로필 기본값과 맞춰 둡니다.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: closr
+          POSTGRES_PASSWORD: closr1234
+          POSTGRES_DB: closr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 17 설정
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Gradle 캐시 설정
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Gradle 실행 권한 부여
+        run: chmod +x gradlew
+
+      - name: 테스트 실행
+        run: ./gradlew test
+
+      # 실패해도 결과는 남깁니다. 실패했을 때가 오히려 봐야 할 때입니다.
+      - name: 테스트 결과 요약
+        if: always()
+        run: |
+          shopt -s nullglob
+          REPORTS=(build/test-results/test/TEST-*.xml)
+          if [ ${#REPORTS[@]} -eq 0 ]; then
+              echo "테스트 결과 파일이 없습니다. 컴파일 단계에서 실패했는지 확인하세요." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+          fi
+
+          python3 - "${REPORTS[@]}" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+
+          total = failed = skipped = 0
+          rows, details = [], []
+
+          for path in sorted(sys.argv[1:]):
+              suite = ET.parse(path).getroot()
+              name = suite.get('name', '').split('.')[-1]
+              tests = int(suite.get('tests', 0))
+              bad = int(suite.get('failures', 0)) + int(suite.get('errors', 0))
+              skip = int(suite.get('skipped', 0))
+
+              total += tests
+              failed += bad
+              skipped += skip
+              rows.append((name, tests, bad, skip))
+
+              for case in suite.iter('testcase'):
+                  for problem in list(case.iter('failure')) + list(case.iter('error')):
+                      # AssertionError 는 첫 줄이 예외 이름뿐이고 본문이 둘째 줄부터
+                      # 시작합니다. 첫 줄만 쓰면 "java.lang.AssertionError:" 로 끝납니다.
+                      raw = (problem.get('message') or '').replace('\n', ' ')
+                      head = ' '.join(raw.split())[:200] or problem.get('type', '')
+                      details.append((name, case.get('name'), head))
+
+          print(f"## 테스트 {total}건 · 실패 {failed}건" + (f" · 건너뜀 {skipped}건" if skipped else ""))
+          print()
+
+          if details:
+              print("### 실패한 테스트")
+              print()
+              print("| 클래스 | 테스트 | 메시지 |")
+              print("|---|---|---|")
+              for cls, case, head in details:
+                  safe = head.replace('|', '\\|')
+                  print(f"| `{cls}` | {case} | {safe} |")
+              print()
+
+          print("<details><summary>클래스별 결과</summary>")
+          print()
+          print("| 클래스 | 건수 | 실패 | 건너뜀 |")
+          print("|---|--:|--:|--:|")
+          for name, tests, bad, skip in rows:
+              print(f"| {'❌' if bad else '✅'} `{name}` | {tests} | {bad} | {skip} |")
+          print()
+          print("</details>")
+          PY
+
+      # 요약으로 부족할 때 원본을 봐야 합니다. HTML 보고서에는 스택 트레이스가 있습니다.
+      - name: 테스트 보고서 업로드
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            build/reports/tests/test
+            build/test-results/test
+          retention-days: 7
