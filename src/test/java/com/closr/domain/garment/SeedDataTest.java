@@ -9,6 +9,7 @@ import com.closr.domain.garment.repository.FitToleranceRepository;
 import com.closr.domain.garment.repository.GarmentRepository;
 import com.closr.domain.garment.repository.GarmentSizeSpecRepository;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -73,6 +74,21 @@ class SeedDataTest {
             assertThat(spec.getTargetEase().keySet())
                     .containsExactlyInAnyOrderElementsOf(spec.getMeasurements().keySet());
         });
+    }
+
+    @Test
+    @DisplayName("시드가 돌고 나면 대문자 사이즈가 남지 않는다")
+    void noUppercaseSizeSurvivesSeeding() {
+        // 대문자가 남아 있으면 R2 파일명이 _M__ 로 조합돼 404 가 납니다.
+        //
+        // 더 급한 문제는 다음 기동입니다. 소문자 행이 이미 있는데 대문자 행도 남아
+        // 있으면 data.sql 의 lower() 가 uk_garment_size 를 위반해 서버가 아예 뜨지
+        // 않습니다. 그래서 이 테스트가 통과한다는 것은 "다음 기동이 가능하다" 는
+        // 뜻이기도 합니다.
+        assertThat(garmentSizeSpecRepository.findAll())
+                .isNotEmpty()
+                .allSatisfy(spec ->
+                        assertThat(spec.getSize()).isEqualTo(spec.getSize().toLowerCase(Locale.ROOT)));
     }
 
     @Test
