@@ -54,11 +54,14 @@ public class AiChatClient {
                             throw new CustomException(ErrorCode.CHAT_UPSTREAM_ERROR);
                         }
                         readLines(response.getBody(), onLine);
-                        return null;
+                        // exchange 는 반환값을 요구합니다. 여기서 쓸 값이 없어
+                        // 상수를 돌려주고 버립니다. null 을 돌려주면 호출부가
+                        // 의미 없는 null 검사를 하게 됩니다.
+                        return Boolean.TRUE;
                     });
-        } catch (CustomException e) {
-            throw e;
         } catch (RestClientException e) {
+            // CustomException 은 RestClientException 의 형제라 여기 걸리지 않고
+            // 그대로 올라갑니다. 따로 재던질 필요가 없습니다.
             log.error("AI 챗 서버에 연결할 수 없습니다", e);
             throw new CustomException(ErrorCode.CHAT_UPSTREAM_ERROR);
         }
