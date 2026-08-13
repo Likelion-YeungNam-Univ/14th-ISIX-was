@@ -37,6 +37,7 @@ import org.springframework.stereotype.Component;
 public class FitContextAssembler {
 
     private final FittingService fittingService;
+    private final PastFittingReader pastFittingReader;
 
     /**
      * @param garmentId 의류를 고르지 않은 상태면 {@code null}. 그때는 치수만 보냅니다
@@ -52,9 +53,10 @@ public class FitContextAssembler {
         context.put("warnings", avatar.getWarnings() == null
                 ? List.of() : avatar.getWarnings());
 
-        // 개인화는 별건입니다. 자리를 비워 두어야 AI 가 항상 같은 형태를 받습니다.
+        // 대화 요약은 별건입니다. 자리를 비워 두어야 AI 가 항상 같은 형태를 받습니다.
         context.put("profile", null);
-        context.put("past_fittings", List.of());
+        // 지금 보고 있는 옷은 제외합니다. 자기 자신과 비교할 수 없습니다.
+        context.put("past_fittings", pastFittingReader.read(session, garmentId));
 
         if (garmentId == null) {
             return context;

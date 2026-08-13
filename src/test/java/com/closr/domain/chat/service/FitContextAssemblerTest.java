@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 class FitContextAssemblerTest {
 
     private FittingService fittingService;
+    private PastFittingReader pastFittingReader;
     private FitContextAssembler assembler;
     private Session session;
     private Avatar avatar;
@@ -36,7 +37,9 @@ class FitContextAssemblerTest {
     @BeforeEach
     void setUp() {
         fittingService = Mockito.mock(FittingService.class);
-        assembler = new FitContextAssembler(fittingService);
+        pastFittingReader = Mockito.mock(PastFittingReader.class);
+        given(pastFittingReader.read(Mockito.any(), Mockito.any())).willReturn(List.of());
+        assembler = new FitContextAssembler(fittingService, pastFittingReader);
 
         session = Mockito.mock(Session.class);
         avatar = Mockito.mock(Avatar.class);
