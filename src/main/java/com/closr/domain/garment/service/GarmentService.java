@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream; // 💡 추가됨!
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +39,12 @@ public class GarmentService {
     /** 사이즈는 사전순(L·M·S)이 아니라 이 순서로 내보냅니다. DB 표기는 소문자입니다(#33). */
     private static final List<String> SIZE_ORDER = List.of("s", "m", "l");
 
+    // 💡 5번 작업: 임의로 정한 인기 디자인 순서 (B안 하드코딩)
+    // 실제 DB(seed_garments.sql)에 있는 6가지 중 3개를 1,2,3위로 세팅!
+    private static final List<String> POPULAR_ORDER = List.of(
+            "tshirt_basic", "shirt_over", "pants_slacks"
+    );
+
     private final GarmentRepository garmentRepository;
     private final GarmentSizeSpecRepository garmentSizeSpecRepository;
     private final GarmentLikeRepository garmentLikeRepository;
@@ -46,7 +53,22 @@ public class GarmentService {
     private final BodyGridMatcher bodyGridMatcher;
 
     public ResponseGarmentListDto getGarmentList() {
+        return getGarmentList(null); // sort 값이 없으면 null을 넣어서 아래 새 메서드 호출!
+    }
+    public ResponseGarmentListDto getGarmentList(String sort) {
         List<Garment> garments = garmentRepository.findAllByOrderByIdAsc();
+
+        // 💡 "?sort=popular"로 찔렀을 때만 하드코딩
+        if ("popular".equals(sort)) {
+            Map<String, Integer> rankMap = IntStream.range(0, POPULAR_ORDER.size())
+                    .boxed()
+                    .collect(Collectors.toMap(POPULAR_ORDER::get, i -> i));
+
+            garments = garments.stream()
+                    .sorted(Comparator.comparingInt(g -> rankMap.getOrDefault(g.getDesign(), Integer.MAX_VALUE)))
+                    .toList();
+        }
+
         Map<Long, List<String>> sizesByGarmentId = findSizesByGarmentId(garments);
 
         List<ResponseGarmentDto> items = garments.stream()
