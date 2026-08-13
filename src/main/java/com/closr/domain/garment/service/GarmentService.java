@@ -39,8 +39,6 @@ public class GarmentService {
     /** 사이즈는 사전순(L·M·S)이 아니라 이 순서로 내보냅니다. DB 표기는 소문자입니다(#33). */
     private static final List<String> SIZE_ORDER = List.of("s", "m", "l");
 
-    // 💡 5번 작업: 임의로 정한 인기 디자인 순서 (B안 하드코딩)
-    // 실제 DB(seed_garments.sql)에 있는 6가지 중 3개를 1,2,3위로 세팅!
     private static final List<String> POPULAR_ORDER = List.of(
             "tshirt_basic", "shirt_over", "pants_slacks"
     );
@@ -58,7 +56,6 @@ public class GarmentService {
     public ResponseGarmentListDto getGarmentList(String sort) {
         List<Garment> garments = garmentRepository.findAllByOrderByIdAsc();
 
-        // 💡 "?sort=popular"로 찔렀을 때만 하드코딩
         if ("popular".equals(sort)) {
             Map<String, Integer> rankMap = IntStream.range(0, POPULAR_ORDER.size())
                     .boxed()
