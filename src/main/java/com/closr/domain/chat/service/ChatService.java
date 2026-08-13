@@ -45,6 +45,7 @@ public class ChatService {
 
     private final ChatHistoryService chatHistoryService;
     private final AvatarRepository avatarRepository;
+    private final FitContextAssembler fitContextAssembler;
     private final AiChatClient aiChatClient;
     private final ObjectMapper objectMapper;
 
@@ -66,8 +67,13 @@ public class ChatService {
                         message.getRole().getValue(), message.getContent()))
                 .toList();
 
+        // fit_context 도 여기서 만듭니다. 스트림 안에서 DB 를 읽으면
+        // open-in-view 가 꺼져 있어 지연 로딩이 실패합니다.
+        Map<String, Object> fitContext = avatar == null ? null
+                : fitContextAssembler.assemble(session, avatar, request.garmentId(), request.size());
+
         AiChatRequest aiRequest = new AiChatRequest(
-                request.mode().getValue(), request.message(), history, null);
+                request.mode().getValue(), request.message(), history, fitContext);
 
         String conversationId = conversation.getConversationId();
         return out -> stream(out, conversationId, conversation, aiRequest);

@@ -45,6 +45,7 @@ class ChatServiceTest {
     private ChatHistoryService chatHistoryService;
     private AvatarRepository avatarRepository;
     private AiChatClient aiChatClient;
+    private FitContextAssembler fitContextAssembler;
     private ChatService chatService;
 
     private Session session;
@@ -55,8 +56,9 @@ class ChatServiceTest {
         chatHistoryService = Mockito.mock(ChatHistoryService.class);
         avatarRepository = Mockito.mock(AvatarRepository.class);
         aiChatClient = Mockito.mock(AiChatClient.class);
+        fitContextAssembler = Mockito.mock(FitContextAssembler.class);
         chatService = new ChatService(chatHistoryService, avatarRepository,
-                aiChatClient, new ObjectMapper());
+                fitContextAssembler, aiChatClient, new ObjectMapper());
 
         session = Mockito.mock(Session.class);
         given(session.getId()).willReturn(1L);
@@ -221,6 +223,38 @@ class ChatServiceTest {
 
         verify(chatHistoryService).findOwned(session, "cv_9f21ab");
         verify(chatHistoryService, never()).open(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("onboarding 은 fit_context 를 보내지 않는다")
+    void sendsNoFitContextForOnboarding() throws Exception {
+        // 아바타 이전 화면이라 서버가 아는 치수가 없습니다.
+        givenAiLines("data: {\"done\":true}");
+
+        run(onboarding("어떻게 써요?"));
+
+        ArgumentCaptor<AiChatRequest> captor = ArgumentCaptor.forClass(AiChatRequest.class);
+        verify(aiChatClient).stream(captor.capture(), any());
+        assertThat(captor.getValue().fit_context()).isNull();
+        verify(fitContextAssembler, never()).assemble(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("fitting 은 조립한 fit_context 를 그대로 실어 보낸다")
+    void sendsAssembledFitContextForFitting() throws Exception {
+        Avatar avatar = Avatar.builder().session(session).status("done")
+                .measurements(Map.of("chest_circ", 85.3)).build();
+        given(avatarRepository.findById(3L)).willReturn(Optional.of(avatar));
+        given(fitContextAssembler.assemble(session, avatar, 2L, "s"))
+                .willReturn(Map.of("garment_id", "shirt_slim", "size", "s"));
+        givenAiLines("data: {\"done\":true}");
+
+        run(new RequestChatDto(ChatMode.FITTING, null, 3L, 2L, "s", "이거 맞나요?"));
+
+        ArgumentCaptor<AiChatRequest> captor = ArgumentCaptor.forClass(AiChatRequest.class);
+        verify(aiChatClient).stream(captor.capture(), any());
+        assertThat(captor.getValue().fit_context())
+                .containsEntry("garment_id", "shirt_slim");
     }
 
     @Test

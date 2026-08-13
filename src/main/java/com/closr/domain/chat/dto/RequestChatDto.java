@@ -21,8 +21,12 @@ public record RequestChatDto(
         // mode=fitting 이면 필수입니다. 치수 없이 사이즈를 답하면 없는 수치를 지어냅니다.
         Long avatarId,
 
-        String garmentId,
+        // 의류 목록·상세가 내려주는 PK 입니다. 명세 예시에는 "shirt_slim" 으로
+        // 적혀 있지만 백엔드가 design 으로 조회하는 경로가 없고, 프론트가 들고
+        // 있는 값도 PK 입니다. AI 에는 여기서 design 문자열로 바꿔 보냅니다.
+        Long garmentId,
 
+        // s | m | l (소문자). 없으면 추천 사이즈를 씁니다.
         String size,
 
         @NotBlank(message = "message 는 필수입니다")
