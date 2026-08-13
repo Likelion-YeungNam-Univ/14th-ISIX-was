@@ -41,6 +41,12 @@ public enum ErrorCode {
 
     // AI 챗봇
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "대화를 찾을 수 없습니다"),
+    // mode=fitting 인데 avatarId 가 없는 경우입니다. 치수 없이 사이즈를 답하게 하면
+    // 없는 수치를 지어냅니다.
+    CHAT_AVATAR_REQUIRED(HttpStatus.BAD_REQUEST, "아바타를 먼저 만들어주세요"),
+    // 스트림을 열기 전에 실패한 경우입니다. 연 뒤에 끊기면 상태 코드를 바꿀 수 없어
+    // 스트림 안의 error 이벤트로 내려갑니다. 코드 이름은 같습니다.
+    CHAT_UPSTREAM_ERROR(HttpStatus.BAD_GATEWAY, "챗봇 서버 응답에 실패했습니다"),
 
     // 외부 연동
     AI_SERVER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE,
