@@ -42,9 +42,11 @@ public class FitContextAssembler {
     /**
      * @param garmentId 의류를 고르지 않은 상태면 {@code null}. 그때는 치수만 보냅니다
      * @param size      사용자가 고른 사이즈. 없으면 추천 사이즈를 씁니다
+     * @param profile   지난 대화 요약. 첫 대화면 {@code null}
      */
     public Map<String, Object> assemble(Session session, Avatar avatar,
-                                        Long garmentId, String size) {
+                                        Long garmentId, String size,
+                                        Map<String, Object> profile) {
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("measurements", avatar.getMeasurements() == null
                 ? Map.of() : avatar.getMeasurements());
@@ -53,8 +55,9 @@ public class FitContextAssembler {
         context.put("warnings", avatar.getWarnings() == null
                 ? List.of() : avatar.getWarnings());
 
-        // 대화 요약은 별건입니다. 자리를 비워 두어야 AI 가 항상 같은 형태를 받습니다.
-        context.put("profile", null);
+        // 첫 대화면 null 입니다. 키는 항상 넣습니다 — 있을 때만 넣으면 AI 가
+        // 받는 형태가 턴마다 달라집니다.
+        context.put("profile", profile);
         // 지금 보고 있는 옷은 제외합니다. 자기 자신과 비교할 수 없습니다.
         context.put("past_fittings", pastFittingReader.read(session, garmentId));
 

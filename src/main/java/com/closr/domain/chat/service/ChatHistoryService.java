@@ -15,8 +15,10 @@ import com.closr.global.exception.ErrorCode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
  * AI 서버 호출은 챗봇 중계가 맡습니다. 스트리밍 도중 예외가 나도 이미 저장된
  * 사용자 발화는 남아야 하므로 저장 시점을 분리했습니다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatHistoryService {
@@ -82,6 +85,22 @@ public class ChatHistoryService {
                 .content(content)
                 .build();
         return chatMessageRepository.save(message);
+    }
+
+    /**
+     * 대화 요약을 갈아 끼웁니다.
+     *
+     * <p>AI 가 {@code done} 이벤트에 실어 보낸 값입니다. 이전 값과 병합하지
+     * 않습니다 — 매 턴 전체를 다시 뽑기 때문에 최신 것이 항상 더 정확합니다.
+     *
+     * <p>스트림이 끝난 뒤 요청 스레드 밖에서 불립니다. 그래서 엔티티를 다시
+     * 읽습니다. 넘겨받은 엔티티는 준영속 상태라 변경이 반영되지 않습니다.
+     */
+    @Transactional
+    public void updateSummary(Long conversationPk, Map<String, Object> summary) {
+        conversationRepository.findById(conversationPk).ifPresentOrElse(
+                conversation -> conversation.updateSummary(summary),
+                () -> log.warn("대화 {} 를 찾지 못해 요약을 저장하지 못했습니다.", conversationPk));
     }
 
     /**

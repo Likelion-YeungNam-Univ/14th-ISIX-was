@@ -236,7 +236,7 @@ class ChatServiceTest {
         ArgumentCaptor<AiChatRequest> captor = ArgumentCaptor.forClass(AiChatRequest.class);
         verify(aiChatClient).stream(captor.capture(), any());
         assertThat(captor.getValue().fit_context()).isNull();
-        verify(fitContextAssembler, never()).assemble(any(), any(), any(), any());
+        verify(fitContextAssembler, never()).assemble(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -245,7 +245,7 @@ class ChatServiceTest {
         Avatar avatar = Avatar.builder().session(session).status("done")
                 .measurements(Map.of("chest_circ", 85.3)).build();
         given(avatarRepository.findById(3L)).willReturn(Optional.of(avatar));
-        given(fitContextAssembler.assemble(session, avatar, 2L, "s"))
+        given(fitContextAssembler.assemble(any(), any(), any(), any(), any()))
                 .willReturn(Map.of("garment_id", "shirt_slim", "size", "s"));
         givenAiLines("data: {\"done\":true}");
 
@@ -255,6 +255,54 @@ class ChatServiceTest {
         verify(aiChatClient).stream(captor.capture(), any());
         assertThat(captor.getValue().fit_context())
                 .containsEntry("garment_id", "shirt_slim");
+    }
+
+    @Test
+    @DisplayName("done 의 summary 를 대화에 저장한다")
+    void savesSummaryFromDone() throws Exception {
+        givenAiLines("data: {\"delta\":\"네\"}",
+                "data: {\"done\":true,\"summary\":{\"용도\":\"출근\",\"신경쓰는부위\":[\"shoulder_width\"]}}");
+
+        run(onboarding("출근용 셔츠 찾아요"));
+
+        ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(chatHistoryService).updateSummary(any(), captor.capture());
+        assertThat(captor.getValue())
+                .containsEntry("용도", "출근")
+                .containsEntry("신경쓰는부위", List.of("shoulder_width"));
+    }
+
+    @Test
+    @DisplayName("summary 가 없으면 저장하지 않는다")
+    void doesNotSaveWhenSummaryAbsent() throws Exception {
+        // 요약이 실패해도 대화는 정상입니다. 다음 턴에 다시 뽑습니다.
+        givenAiLines("data: {\"delta\":\"네\"}", "data: {\"done\":true}");
+
+        run(onboarding("질문"));
+
+        verify(chatHistoryService, never()).updateSummary(any(), any());
+    }
+
+    @Test
+    @DisplayName("지난 요약을 profile 로 되돌려 보낸다")
+    void injectsStoredSummaryAsProfile() throws Exception {
+        Map<String, Object> stored = Map.of("용도", "출근");
+        Conversation withSummary = Conversation.builder()
+                .conversationId("cv_9f21ab").session(session).mode(ChatMode.FITTING).build();
+        withSummary.updateSummary(stored);
+        given(chatHistoryService.findOwned(session, "cv_9f21ab")).willReturn(withSummary);
+
+        Avatar avatar = Avatar.builder().session(session).status("done")
+                .measurements(Map.of("chest_circ", 85.3)).build();
+        given(avatarRepository.findById(3L)).willReturn(Optional.of(avatar));
+        given(fitContextAssembler.assemble(any(), any(), any(), any(), any()))
+                .willReturn(Map.of("profile", stored));
+        givenAiLines("data: {\"done\":true}");
+
+        run(new RequestChatDto(ChatMode.FITTING, "cv_9f21ab", 3L, 2L, "s", "이건 어때요?"));
+
+        // 조립기에 지난 요약이 그대로 넘어가야 합니다.
+        verify(fitContextAssembler).assemble(session, avatar, 2L, "s", stored);
     }
 
     @Test

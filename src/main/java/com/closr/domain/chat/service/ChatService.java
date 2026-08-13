@@ -11,12 +11,14 @@ import com.closr.global.exception.CustomException;
 import com.closr.global.exception.ErrorCode;
 import com.closr.infra.ai.AiChatClient;
 import com.closr.infra.ai.AiChatRequest;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -69,14 +71,18 @@ public class ChatService {
 
         // fit_context 도 여기서 만듭니다. 스트림 안에서 DB 를 읽으면
         // open-in-view 가 꺼져 있어 지연 로딩이 실패합니다.
+        // 지난 대화 요약을 되돌려 보냅니다. 첫 대화면 null 이고, 그때는 AI 가
+        // 아는 척하지 않습니다.
         Map<String, Object> fitContext = avatar == null ? null
-                : fitContextAssembler.assemble(session, avatar, request.garmentId(), request.size());
+                : fitContextAssembler.assemble(session, avatar, request.garmentId(),
+                        request.size(), conversation.getSummary());
 
         AiChatRequest aiRequest = new AiChatRequest(
                 request.mode().getValue(), request.message(), history, fitContext);
 
         String conversationId = conversation.getConversationId();
-        return out -> stream(out, conversationId, conversation, aiRequest);
+        Long conversationPk = conversation.getId();
+        return out -> stream(out, conversationId, conversationPk, conversation, aiRequest);
     }
 
     /**
@@ -108,16 +114,17 @@ public class ChatService {
         return chatHistoryService.findOwned(session, request.conversationId());
     }
 
-    private void stream(OutputStream out, String conversationId,
+    private void stream(OutputStream out, String conversationId, Long conversationPk,
                         Conversation conversation, AiChatRequest aiRequest) {
         StringBuilder answer = new StringBuilder();
+        Map<String, Object> summary = new LinkedHashMap<>();
 
         try {
             // 첫 이벤트로 대화 식별자를 알립니다. 신규 대화면 프론트가 이 값을
             // 다음 요청에 실어 보냅니다.
             write(out, Map.of("conversationId", conversationId));
 
-            aiChatClient.stream(aiRequest, line -> relayLine(out, line, answer));
+            aiChatClient.stream(aiRequest, line -> relayLine(out, line, answer, summary));
         } catch (ClientGoneException e) {
             // 사용자가 화면을 닫았습니다. 여기서 멈추면 남은 토큰을 받지 않아
             // 과금이 줄어듭니다. 서버 오류가 아니라 debug 로 남깁니다.
@@ -132,6 +139,10 @@ public class ChatService {
             if (!answer.isEmpty()) {
                 chatHistoryService.append(conversation, ChatRole.ASSISTANT, answer.toString());
             }
+            // 요약이 없어도 대화는 정상입니다. 다음 턴에 다시 뽑습니다.
+            if (!summary.isEmpty()) {
+                chatHistoryService.updateSummary(conversationPk, summary);
+            }
         }
     }
 
@@ -145,7 +156,8 @@ public class ChatService {
      * 용도라 프론트가 쓸 값이 아니고, 그대로 흘리면 프론트가 모르는 필드를
      * 받습니다. 저장 로직은 별건이라 지금은 떼어내고 로그만 남깁니다.
      */
-    private void relayLine(OutputStream out, String line, StringBuilder answer) {
+    private void relayLine(OutputStream out, String line, StringBuilder answer,
+                           Map<String, Object> summary) {
         if (!line.startsWith("data: ")) {
             return;
         }
@@ -163,8 +175,9 @@ public class ChatService {
         }
 
         if (node.has("summary")) {
-            log.debug("대화 요약을 받았습니다 (저장은 별건): {}", node.get("summary"));
-            ((ObjectNode) node).remove("summary");
+            // 백엔드만 소비합니다. 프론트로 넘기면 모르는 필드를 받습니다.
+            JsonNode extracted = ((ObjectNode) node).remove("summary");
+            summary.putAll(objectMapper.convertValue(extracted, new TypeReference<>() {}));
         }
 
         write(out, node);

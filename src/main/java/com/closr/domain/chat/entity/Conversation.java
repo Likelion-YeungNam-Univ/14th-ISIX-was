@@ -14,10 +14,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * AI 챗봇 대화.
@@ -67,6 +70,22 @@ public class Conversation extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "avatar_id")
     private Avatar avatar;
+
+    /**
+     * 대화에서 뽑은 요약. 다음 요청의 {@code fit_context.profile} 로 되돌려 보냅니다.
+     *
+     * <p>AI 가 {@code done} 이벤트에 실어 보내는 값을 그대로 담습니다. 항목이
+     * 고정돼 있어(용도 · 신경쓰는부위 · 선호핏 · 피하는것) 자유 서술이 들어오지
+     * 않습니다. 첫 대화에서는 {@code null} 입니다.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> summary;
+
+    /** 새 요약으로 갈아 끼웁니다. 이전 값과 병합하지 않습니다 — 매 턴 전체를 다시 뽑습니다. */
+    public void updateSummary(Map<String, Object> summary) {
+        this.summary = summary;
+    }
 
     @Builder
     private Conversation(String conversationId, Session session, ChatMode mode, Avatar avatar) {

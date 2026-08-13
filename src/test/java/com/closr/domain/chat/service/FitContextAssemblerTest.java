@@ -67,7 +67,7 @@ class FitContextAssemblerTest {
     @Test
     @DisplayName("의류를 고르지 않으면 치수와 경고만 보낸다")
     void sendsOnlyMeasurementsWithoutGarment() {
-        Map<String, Object> context = assembler.assemble(session, avatar, null, null);
+        Map<String, Object> context = assembler.assemble(session, avatar, null, null, null);
 
         assertThat(context).containsOnlyKeys(
                 "measurements", "warnings", "profile", "past_fittings");
@@ -84,7 +84,7 @@ class FitContextAssemblerTest {
                 detail(null, new ResponseFitPartDto("shoulder_width", -10.5, -7.9, -2.6, "꽉 낌", "red")),
                 detail(null), detail(null));
 
-        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s");
+        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s", null);
 
         assertThat(context.get("garment_id")).isEqualTo("shirt_slim");
         assertThat(context.get("fit")).isEqualTo("슬림");
@@ -111,7 +111,7 @@ class FitContextAssemblerTest {
                         new ResponseFitPartDto("waist_circ", 20.0, 8.0, 12.0, "여유 있음", "blue")),
                 detail(null), detail(null));
 
-        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s");
+        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s", null);
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> report = (List<Map<String, Object>>) context.get("fit_report");
@@ -127,7 +127,7 @@ class FitContextAssemblerTest {
                 detail(null, new ResponseFitPartDto("chest_circ", 6.5, 8.0, -1.5, "적정", "green")),
                 detail(null), detail(null));
 
-        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s");
+        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s", null);
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> report = (List<Map<String, Object>>) context.get("fit_report");
@@ -141,7 +141,7 @@ class FitContextAssemblerTest {
                 detail(null, new ResponseFitPartDto("chest_circ", 0.0, 8.0, -8.0, "적정", "green")),
                 detail(null));
 
-        Map<String, Object> context = assembler.assemble(session, avatar, 2L, null);
+        Map<String, Object> context = assembler.assemble(session, avatar, 2L, null, null);
 
         assertThat(context.get("size")).isEqualTo("m");
     }
@@ -152,7 +152,7 @@ class FitContextAssemblerTest {
         givenFitting("m", detail(null), detail(null),
                 detail(null, new ResponseFitPartDto("chest_circ", 12.0, 8.0, 4.0, "여유 있음", "blue")));
 
-        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "L");
+        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "L", null);
 
         assertThat(context.get("size")).isEqualTo("l");
         assertThat(context.get("fit_report")).asList().hasSize(1);
@@ -166,7 +166,7 @@ class FitContextAssemblerTest {
                         new ResponseFitPartDto("chest_circ", -9.0, 8.0, -17.0, "꽉 낌", "red")),
                 detail(null), detail(null));
 
-        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s");
+        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s", null);
 
         assertThat(context.get("unavailable_reason")).isEqualTo("TOO_SMALL");
         // 미리보기만 없고 판정은 그대로 보냅니다.
@@ -178,7 +178,7 @@ class FitContextAssemblerTest {
     void skipsFitReportWhenSizeMissing() {
         givenFitting("m", null, detail(null), detail(null));
 
-        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s");
+        Map<String, Object> context = assembler.assemble(session, avatar, 2L, "s", null);
 
         assertThat(context).doesNotContainKey("fit_report");
         assertThat(context).containsKey("measurements");
@@ -190,7 +190,7 @@ class FitContextAssemblerTest {
         // getFitting 을 쓰면 대화 한 턴마다 기록이 쌓여 past_fittings 가 오염됩니다.
         givenFitting("m", detail(null), detail(null), detail(null));
 
-        assembler.assemble(session, avatar, 2L, "s");
+        assembler.assemble(session, avatar, 2L, "s", null);
 
         Mockito.verify(fittingService).evaluate(session, 1L, 2L);
         Mockito.verify(fittingService, Mockito.never())
