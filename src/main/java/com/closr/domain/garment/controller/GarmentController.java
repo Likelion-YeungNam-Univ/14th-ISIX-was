@@ -18,8 +18,8 @@ public class GarmentController implements GarmentApi {
     private final GarmentService garmentService;
 
     @Override
-    public ResponseEntity<ApiResponse<ResponseGarmentListDto>> getGarmentList() {
-        return ResponseEntity.ok(ApiResponse.ok(garmentService.getGarmentList()));
+    public ResponseEntity<ApiResponse<ResponseGarmentListDto>> getGarmentList(String sort, String bodyType) {
+        return ResponseEntity.ok(ApiResponse.ok(garmentService.getGarmentList(sort, bodyType)));
     }
 
     @Override

@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream; // 💡 추가됨!
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +39,17 @@ public class GarmentService {
     /** 사이즈는 사전순(L·M·S)이 아니라 이 순서로 내보냅니다. DB 표기는 소문자입니다(#33). */
     private static final List<String> SIZE_ORDER = List.of("s", "m", "l");
 
+    private static final List<String> POPULAR_ORDER = List.of(
+            "tshirt_basic", "shirt_over", "pants_slacks"
+    );
+    private static final Map<String, List<String>> BODY_TYPE_RECOMMENDATIONS = Map.of(
+            "triangle", List.of("shirt_over", "dress_basic"),
+            "inverted_triangle", List.of("tshirt_basic", "pants_slacks"),
+            "hourglass", List.of("shirt_slim", "skirt_pencil"),
+            "rectangle", List.of("shirt_over", "pants_slacks"),
+            "round", List.of("tshirt_basic", "dress_basic")
+    );
+
     private final GarmentRepository garmentRepository;
     private final GarmentSizeSpecRepository garmentSizeSpecRepository;
     private final GarmentLikeRepository garmentLikeRepository;
@@ -46,7 +58,27 @@ public class GarmentService {
     private final BodyGridMatcher bodyGridMatcher;
 
     public ResponseGarmentListDto getGarmentList() {
+        return getGarmentList(null, null);
+    }
+    public ResponseGarmentListDto getGarmentList(String sort, String bodyType) {
         List<Garment> garments = garmentRepository.findAllByOrderByIdAsc();
+
+        if (bodyType != null && !bodyType.isBlank()) {
+            garments = garments.stream()
+                    .filter(garment -> isRecommendedForBodyType(garment, bodyType))
+                    .toList();
+        }
+
+        if ("popular".equals(sort)) {
+            Map<String, Integer> rankMap = IntStream.range(0, POPULAR_ORDER.size())
+                    .boxed()
+                    .collect(Collectors.toMap(POPULAR_ORDER::get, i -> i));
+
+            garments = garments.stream()
+                    .sorted(Comparator.comparingInt(g -> rankMap.getOrDefault(g.getDesign(), Integer.MAX_VALUE)))
+                    .toList();
+        }
+
         Map<Long, List<String>> sizesByGarmentId = findSizesByGarmentId(garments);
 
         List<ResponseGarmentDto> items = garments.stream()
@@ -61,7 +93,18 @@ public class GarmentService {
 
         return new ResponseGarmentListDto(items);
     }
+    private boolean isRecommendedForBodyType(Garment garment, String bodyType) {
+        if (bodyType == null || bodyType.isBlank()) {
+            return true;
+        }
+        List<String> recommendedDesigns = BODY_TYPE_RECOMMENDATIONS.get(bodyType.toLowerCase());
 
+        if (recommendedDesigns != null) {
+            return recommendedDesigns.contains(garment.getDesign());
+        }
+
+        return true;
+    }
     /**
      * 의류 상세를 조회합니다.
      *
