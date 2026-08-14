@@ -46,7 +46,10 @@ public record AiAvatarResponse(
             String bodyBucket,
             Map<String, Double> measurements,
             Double confidence,
-            List<String> warnings
+            List<String> warnings,
+            String bodyType,
+            String bodyTypeLabel,
+            String bodyTypeMessage
     ) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

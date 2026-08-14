@@ -69,7 +69,10 @@ public class AvatarController implements AvatarApi {
                 avatar.getGlbUrl(),
                 avatar.getMeasurements(),
                 avatar.getConfidence(),
-                avatar.getWarnings()
+                avatar.getWarnings(),
+                avatar.getBodyType(),
+                avatar.getBodyTypeLabel(),
+                avatar.getBodyTypeMessage()
         );
     }
 }

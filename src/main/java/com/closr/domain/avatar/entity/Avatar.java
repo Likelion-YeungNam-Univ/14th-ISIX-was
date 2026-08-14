@@ -80,6 +80,16 @@ public class Avatar extends BaseTimeEntity {
     @Column(columnDefinition = "jsonb")
     private List<String> warnings;
 
+    // 체형 진단 결과 컬럼 추가
+    @Column(name = "body_type", length = 30)
+    private String bodyType;
+
+    @Column(name = "body_type_label", length = 20)
+    private String bodyTypeLabel;
+
+    @Column(name = "body_type_message", columnDefinition = "text")
+    private String bodyTypeMessage;
+
     @Builder
     private Avatar(Session session, String jobId, String status,
                    Integer height, Integer weight, String glbUrl,
@@ -96,13 +106,17 @@ public class Avatar extends BaseTimeEntity {
         this.warnings = warnings;
     }
 
-    public void markDone(String glbUrl, Map<String, Double> measurements,
-                         Double confidence, List<String> warnings) {
+    public void markDone(String glbUrl, Map<String, Double> measurements, Double confidence,
+                         List<String> warnings, String bodyType, String bodyTypeLabel, String bodyTypeMessage) {
         this.status = "done";
         this.glbUrl = glbUrl;
         this.measurements = measurements;
         this.confidence = confidence;
         this.warnings = warnings;
+
+        this.bodyType = bodyType;
+        this.bodyTypeLabel = bodyTypeLabel;
+        this.bodyTypeMessage = bodyTypeMessage;
     }
 
     public void markFailed() {
