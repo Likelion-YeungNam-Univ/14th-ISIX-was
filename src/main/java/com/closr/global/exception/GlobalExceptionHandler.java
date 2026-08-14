@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -82,6 +83,24 @@ public class GlobalExceptionHandler {
     }
 
     /** 경로변수 · 쿼리파라미터의 타입이 맞지 않는 경우. 예) {@code /garments/abc/fit} */
+    /**
+     * 요청 본문을 읽을 수 없는 경우.
+     *
+     * <p>JSON 문법이 깨졌거나 타입이 맞지 않을 때입니다. 예를 들어 {@code Long}
+     * 자리에 문자열을 보내면 여기로 옵니다.
+     *
+     * <p><b>이걸 잡지 않으면 500 으로 나갑니다.</b> 클라이언트가 잘못 보낸 것인데
+     * 서버 오류로 보이고, 로그에도 error 로 쌓여 진짜 장애와 섞입니다.
+     *
+     * <p>어느 필드가 문제인지는 알려주지 않습니다. Jackson 메시지에 클래스 이름과
+     * 패키지 경로가 들어 있어 그대로 내보내면 내부 구조가 노출됩니다.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException e) {
+        log.warn("Request body could not be read: {}", e.getMessage());
+        return errorResponse(ErrorCode.INVALID_INPUT, null);
+    }
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         log.warn("Type mismatch: name={}, value={}", e.getName(), e.getValue());
