@@ -45,6 +45,9 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 @RequiredArgsConstructor
 public class ChatService {
 
+    /** 음성 발화 한 번 분량입니다. AI 서버의 MAX_MESSAGE_LEN 과 같은 값입니다. */
+    private static final int MAX_MESSAGE_LENGTH = 500;
+
     private final ChatRateLimiter chatRateLimiter;
     private final ChatHistoryService chatHistoryService;
     private final AvatarRepository avatarRepository;
@@ -60,7 +63,12 @@ public class ChatService {
      * open-in-view} 가 꺼져 있어 스트림 안에서 지연 로딩을 하면 실패합니다.
      */
     public StreamingResponseBody relay(Session session, RequestChatDto request) {
-        // 가장 먼저 봅니다. 뒤에 두면 한도를 넘긴 요청도 DB 조회를 다 하고 나서
+        // 길이를 먼저 봅니다. 500자를 넘긴 요청이 한도를 깎을 이유가 없습니다.
+        if (request.message().length() > MAX_MESSAGE_LENGTH) {
+            throw new CustomException(ErrorCode.CHAT_MESSAGE_TOO_LONG);
+        }
+
+        // 그다음 한도입니다. 뒤에 두면 한도를 넘긴 요청도 DB 조회를 다 하고 나서
         // 거절됩니다.
         chatRateLimiter.check(session.getId());
 
