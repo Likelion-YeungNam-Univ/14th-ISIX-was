@@ -41,7 +41,7 @@ class GarmentControllerTest {
     @Test
     @DisplayName("의류 목록을 봉투에 담아 반환한다")
     void returnsGarmentList() throws Exception {
-        given(garmentService.getGarmentList(any())).willReturn(new ResponseGarmentListDto(List.of(
+        given(garmentService.getGarmentList(any(),any())).willReturn(new ResponseGarmentListDto(List.of(
                 new ResponseGarmentDto(1L, "베이직 티셔츠", null, "top", List.of("S", "M", "L")),
                 new ResponseGarmentDto(2L, "슬랙스", null, "bottom", List.of())
         )));
@@ -60,7 +60,7 @@ class GarmentControllerTest {
     @Test
     @DisplayName("등록된 의류가 없어도 빈 목록을 반환한다")
     void returnsEmptyListWhenNoGarments() throws Exception {
-        given(garmentService.getGarmentList(any())).willReturn(new ResponseGarmentListDto(List.of()));
+        given(garmentService.getGarmentList(any(), any())).willReturn(new ResponseGarmentListDto(List.of()));
 
         mockMvc.perform(get("/api/v1/garments"))
                 .andExpect(status().isOk())

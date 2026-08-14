@@ -42,6 +42,13 @@ public class GarmentService {
     private static final List<String> POPULAR_ORDER = List.of(
             "tshirt_basic", "shirt_over", "pants_slacks"
     );
+    private static final Map<String, List<String>> BODY_TYPE_RECOMMENDATIONS = Map.of(
+            "triangle", List.of("shirt_over", "dress_basic"),
+            "inverted_triangle", List.of("tshirt_basic", "pants_slacks"),
+            "hourglass", List.of("shirt_slim", "skirt_pencil"),
+            "rectangle", List.of("shirt_over", "pants_slacks"),
+            "round", List.of("tshirt_basic", "dress_basic")
+    );
 
     private final GarmentRepository garmentRepository;
     private final GarmentSizeSpecRepository garmentSizeSpecRepository;
@@ -51,10 +58,16 @@ public class GarmentService {
     private final BodyGridMatcher bodyGridMatcher;
 
     public ResponseGarmentListDto getGarmentList() {
-        return getGarmentList(null); // sort 값이 없으면 null을 넣어서 아래 새 메서드 호출!
+        return getGarmentList(null, null);
     }
-    public ResponseGarmentListDto getGarmentList(String sort) {
+    public ResponseGarmentListDto getGarmentList(String sort, String bodyType) {
         List<Garment> garments = garmentRepository.findAllByOrderByIdAsc();
+
+        if (bodyType != null && !bodyType.isBlank()) {
+            garments = garments.stream()
+                    .filter(garment -> isRecommendedForBodyType(garment, bodyType))
+                    .toList();
+        }
 
         if ("popular".equals(sort)) {
             Map<String, Integer> rankMap = IntStream.range(0, POPULAR_ORDER.size())
@@ -80,7 +93,18 @@ public class GarmentService {
 
         return new ResponseGarmentListDto(items);
     }
+    private boolean isRecommendedForBodyType(Garment garment, String bodyType) {
+        if (bodyType == null || bodyType.isBlank()) {
+            return true;
+        }
+        List<String> recommendedDesigns = BODY_TYPE_RECOMMENDATIONS.get(bodyType.toLowerCase());
 
+        if (recommendedDesigns != null) {
+            return recommendedDesigns.contains(garment.getDesign());
+        }
+
+        return true;
+    }
     /**
      * 의류 상세를 조회합니다.
      *
