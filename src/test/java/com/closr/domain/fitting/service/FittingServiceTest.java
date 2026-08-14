@@ -249,7 +249,7 @@ class FittingServiceTest {
     @DisplayName("착용 불가 조합은 주소 없이 사유만 내려주고 판정은 그대로 제공한다")
     void marksImpossibleCombinationUnavailable() {
         // shirt_slim_s__H2B2 는 missing_combos.json 에 있는 조합입니다.
-        // 옷 둘레가 체형 가슴둘레보다 작아 시뮬 실패가 정상 결과입니다.
+        // 미리보기를 만들지 못한 조합입니다. 착용 가능 여부는 판정이 따로 정합니다.
         Garment slim = Garment.builder()
                 .design("shirt_slim").name("슬림 셔츠").category("top").fit("슬림").build();
         given(garmentRepository.findById(2L)).willReturn(Optional.of(slim));

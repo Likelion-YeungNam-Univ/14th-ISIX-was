@@ -63,7 +63,8 @@ class GarmentAssetResolverTest {
     @Test
     @DisplayName("착용 불가 3조합은 주소 없이 TOO_SMALL 을 돌려준다")
     void marksMissingCombosTooSmall() {
-        // 옷 둘레가 체형 가슴둘레보다 작아 시뮬 실패가 정상 결과인 조합입니다.
+        // 시뮬레이션이 미리보기를 만들지 못한 조합입니다. 이름은 TOO_SMALL 이지만
+        // shirt_slim_m__H2B3 는 옷이 몸보다 1.0cm 큽니다 — 미리보기 유무만 나타냅니다.
         for (String[] combo : new String[][]{
                 {"shirt_slim", "s", "H2B2"},
                 {"shirt_slim", "s", "H2B3"},

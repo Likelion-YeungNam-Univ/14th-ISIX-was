@@ -104,6 +104,7 @@ public class GarmentAssetResolver {
 
         String key = key(design, size, bucket);
         if (missingCombos.contains(key)) {
+            // 미리보기 파일이 없다는 뜻입니다. 착용 가능 여부는 판정이 정합니다.
             return GarmentAsset.unavailable(UnavailableReason.TOO_SMALL);
         }
         return GarmentAsset.available(

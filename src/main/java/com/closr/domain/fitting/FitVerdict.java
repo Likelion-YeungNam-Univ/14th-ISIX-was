@@ -26,6 +26,17 @@ public enum FitVerdict {
     private final String label;
     private final String color;
 
+    /**
+     * AI 서버와 주고받는 표기. {@code tight} · {@code good} · {@code loose} 입니다.
+     *
+     * <p>{@link #getLabel()} 은 화면에 그대로 찍는 한글이고 이쪽은 계약용입니다.
+     * 프롬프트가 한글 라벨을 받으면 부위 키({@code shoulder_width})와 연결하지
+     * 못해 "어깨 여유가 2cm" 같은 문장을 만들 수 없습니다.
+     */
+    public String getCode() {
+        return name().toLowerCase();
+    }
+
     public static FitVerdict of(double deviation, FitTolerance tolerance) {
         if (tolerance.isTight(deviation)) {
             return TIGHT;

@@ -74,6 +74,24 @@ public class FittingService {
 
     @Transactional
     public ResponseFittingDto getFitting(Session session, Long avatarId, Long garmentId) {
+        Evaluation evaluation = evaluate(session, avatarId, garmentId);
+
+        fittingRecordService.save(session, evaluation.avatar(), evaluation.garment(),
+                evaluation.response().recommendedSize(), evaluation.recommendedWearable(),
+                toRecord(evaluation.response()));
+
+        return evaluation.response();
+    }
+
+    /**
+     * 판정만 합니다. 기록을 남기지 않습니다.
+     *
+     * <p>챗봇이 근거 수치를 인용할 때 씁니다. {@link #getFitting} 을 쓰면
+     * <b>대화 한 턴마다 피팅 기록이 쌓입니다.</b> 그러면 "지난번에 보신 셔츠"
+     * 같은 발화의 근거가 실제 조회가 아닌 대화 흔적으로 오염됩니다.
+     */
+    @Transactional(readOnly = true)
+    public Evaluation evaluate(Session session, Long avatarId, Long garmentId) {
         Avatar avatar = loadAvatar(session, avatarId);
         Garment garment = garmentRepository.findById(garmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.GARMENT_NOT_FOUND));
@@ -92,13 +110,19 @@ public class FittingService {
                 .toList();
 
         SizeJudgement best = pickRecommended(judgements);
-        ResponseFittingDto response = toResponse(garmentId, garment.getDesign(), judgements, best, avatar);
+        ResponseFittingDto response =
+                toResponse(garmentId, garment.getDesign(), judgements, best, avatar);
 
-        fittingRecordService.save(session, avatar, garment,
-                best.size(), best.wearable(), toRecord(response));
-
-        return response;
+        return new Evaluation(avatar, garment, response, best.wearable());
     }
+
+    /** 판정 결과와 그 근거가 된 엔티티. 기록 저장과 챗봇 인용이 함께 씁니다. */
+    public record Evaluation(
+            Avatar avatar,
+            Garment garment,
+            ResponseFittingDto response,
+            boolean recommendedWearable
+    ) {}
 
     private Avatar loadAvatar(Session session, Long avatarId) {
         Avatar avatar = avatarRepository.findById(avatarId)

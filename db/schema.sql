@@ -128,6 +128,9 @@ CREATE TABLE IF NOT EXISTS conversations (
     session_id      bigint      NOT NULL,
     mode            varchar(20) NOT NULL,
     avatar_id       bigint,
+    -- 대화에서 뽑은 요약. 다음 요청의 fit_context.profile 로 되돌려 보냅니다.
+    -- 항목이 고정돼 있어(용도 · 신경쓰는부위 · 선호핏 · 피하는것) 자유 서술이 들어오지 않습니다.
+    summary         jsonb,
     created_at      timestamp(6),
     updated_at      timestamp(6),
     CONSTRAINT fk_conversations_session FOREIGN KEY (session_id) REFERENCES sessions (id),
