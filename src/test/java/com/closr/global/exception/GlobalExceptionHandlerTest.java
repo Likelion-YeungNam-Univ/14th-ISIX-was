@@ -2,6 +2,7 @@ package com.closr.global.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -31,6 +33,14 @@ class GlobalExceptionHandlerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    /** 챗 컨트롤러가 세션을 요구합니다. 본문 파싱 전에 터지므로 값은 쓰이지 않습니다. */
+    private Session session() {
+        return Session.builder()
+                .sessionToken("test-token")
+                .expiresAt(LocalDateTime.now().plusDays(1))
+                .build();
+    }
 
     @Test
     @DisplayName("존재하지 않는 경로는 500 이 아니라 404 를 반환한다")
@@ -75,6 +85,44 @@ class GlobalExceptionHandlerTest {
         assertThat(body).contains("요청하신 경로를 찾을 수 없습니다");
         // Latin-1 로 잘못 해석했을 때 나타나는 형태가 섞여 있으면 안 됩니다.
         assertThat(body).doesNotContain("ì");
+    }
+
+    @Test
+    @DisplayName("본문 타입이 맞지 않으면 500 이 아니라 400 을 반환한다")
+    void wrongBodyTypeReturnsBadRequest() throws Exception {
+        // garmentId 는 숫자인데 문자열을 보낸 경우입니다. 명세 예시가 예전에
+        // "shirt_slim" 이었어서 실제로 이렇게 보내는 클라이언트가 있었습니다.
+        mockMvc.perform(post("/api/v1/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .requestAttr("session", session())
+                        .content("{\"mode\":\"onboarding\",\"garmentId\":\"shirt_slim\",\"message\":\"안녕\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    @DisplayName("JSON 문법이 깨져도 500 이 아니라 400 을 반환한다")
+    void malformedJsonReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .requestAttr("session", session())
+                        .content("{\"mode\":\"onboarding\","))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    @DisplayName("본문 오류 응답에 내부 클래스 이름을 노출하지 않는다")
+    void doesNotLeakInternalNames() throws Exception {
+        // Jackson 메시지에는 패키지 경로가 들어 있어 그대로 내보내면 구조가 드러납니다.
+        String body = mockMvc.perform(post("/api/v1/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .requestAttr("session", session())
+                        .content("{\"mode\":\"onboarding\",\"garmentId\":\"x\",\"message\":\"안녕\"}"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(body).doesNotContain("com.closr");
+        assertThat(body).doesNotContain("RequestChatDto");
     }
 
     @Test
