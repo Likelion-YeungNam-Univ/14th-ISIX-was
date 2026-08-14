@@ -44,6 +44,8 @@ public enum ErrorCode {
     // mode=fitting 인데 avatarId 가 없는 경우입니다. 치수 없이 사이즈를 답하게 하면
     // 없는 수치를 지어냅니다.
     CHAT_AVATAR_REQUIRED(HttpStatus.BAD_REQUEST, "아바타를 먼저 만들어주세요"),
+    // 과금 보호입니다. 챗 요청 한 번이 LLM 호출 두 번(답변 + 요약)입니다.
+    CHAT_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "요청이 많습니다. 잠시 후 다시 시도해주세요"),
     // 스트림을 열기 전에 실패한 경우입니다. 연 뒤에 끊기면 상태 코드를 바꿀 수 없어
     // 스트림 안의 error 이벤트로 내려갑니다. 코드 이름은 같습니다.
     CHAT_UPSTREAM_ERROR(HttpStatus.BAD_GATEWAY, "챗봇 서버 응답에 실패했습니다"),

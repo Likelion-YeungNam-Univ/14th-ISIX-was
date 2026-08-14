@@ -45,6 +45,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 @RequiredArgsConstructor
 public class ChatService {
 
+    private final ChatRateLimiter chatRateLimiter;
     private final ChatHistoryService chatHistoryService;
     private final AvatarRepository avatarRepository;
     private final FitContextAssembler fitContextAssembler;
@@ -59,6 +60,10 @@ public class ChatService {
      * open-in-view} 가 꺼져 있어 스트림 안에서 지연 로딩을 하면 실패합니다.
      */
     public StreamingResponseBody relay(Session session, RequestChatDto request) {
+        // 가장 먼저 봅니다. 뒤에 두면 한도를 넘긴 요청도 DB 조회를 다 하고 나서
+        // 거절됩니다.
+        chatRateLimiter.check(session.getId());
+
         Avatar avatar = resolveAvatar(session, request);
         Conversation conversation = resolveConversation(session, request, avatar);
 

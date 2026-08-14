@@ -57,7 +57,7 @@ class ChatServiceTest {
         avatarRepository = Mockito.mock(AvatarRepository.class);
         aiChatClient = Mockito.mock(AiChatClient.class);
         fitContextAssembler = Mockito.mock(FitContextAssembler.class);
-        chatService = new ChatService(chatHistoryService, avatarRepository,
+        chatService = new ChatService(new ChatRateLimiter(), chatHistoryService, avatarRepository,
                 fitContextAssembler, aiChatClient, new ObjectMapper());
 
         session = Mockito.mock(Session.class);
@@ -192,6 +192,24 @@ class ChatServiceTest {
                 .hasMessageContaining("아바타를 먼저");
 
         // 스트림을 열지 않았으니 AI 를 부르지도, 발화를 남기지도 않습니다.
+        verify(aiChatClient, never()).stream(any(), any());
+        verify(chatHistoryService, never()).append(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("한도를 넘으면 스트림을 열기 전에 막고 AI 를 부르지 않는다")
+    void rejectsOverRateLimitBeforeStream() throws Exception {
+        // 한도를 넘긴 요청이 DB 조회와 AI 호출까지 다 하고 거절되면 의미가 없습니다.
+        for (int i = 0; i < 30; i++) {
+            givenAiLines("data: {\"done\":true}");
+            run(onboarding("질문 " + i));
+        }
+        Mockito.clearInvocations(aiChatClient, chatHistoryService);
+
+        assertThatThrownBy(() -> chatService.relay(session, onboarding("한 번 더")))
+                .isInstanceOf(CustomException.class)
+                .hasMessageContaining("요청이 많습니다");
+
         verify(aiChatClient, never()).stream(any(), any());
         verify(chatHistoryService, never()).append(any(), any(), any());
     }
