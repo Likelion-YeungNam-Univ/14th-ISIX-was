@@ -3,7 +3,6 @@ package com.closr.domain.chat.dto;
 import com.closr.domain.chat.entity.ChatMode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 /**
  * 챗봇 요청.
@@ -29,7 +28,9 @@ public record RequestChatDto(
         // s | m | l (소문자). 없으면 추천 사이즈를 씁니다.
         String size,
 
+        // 길이는 @Size 로 잡지 않습니다. @Valid 가 걸리면 INVALID_INPUT 으로
+        // 나가는데, 명세는 CHAT_MESSAGE_TOO_LONG 을 요구하고 프론트도 그 코드로
+        // 문구를 준비해뒀습니다. ChatService 에서 명시적으로 검사합니다.
         @NotBlank(message = "message 는 필수입니다")
-        @Size(max = 500, message = "발화는 500자를 넘을 수 없습니다")
         String message
 ) {}

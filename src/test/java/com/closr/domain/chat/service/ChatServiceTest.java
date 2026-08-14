@@ -1,6 +1,7 @@
 package com.closr.domain.chat.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -194,6 +195,41 @@ class ChatServiceTest {
         // 스트림을 열지 않았으니 AI 를 부르지도, 발화를 남기지도 않습니다.
         verify(aiChatClient, never()).stream(any(), any());
         verify(chatHistoryService, never()).append(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("500자를 넘으면 CHAT_MESSAGE_TOO_LONG 으로 막는다")
+    void rejectsTooLongMessage() {
+        // @Valid 에 맡기면 INVALID_INPUT 으로 나가 프론트가 준비한 문구를 못 씁니다.
+        RequestChatDto request = onboarding("가".repeat(501));
+
+        assertThatThrownBy(() -> chatService.relay(session, request))
+                .isInstanceOf(CustomException.class)
+                .extracting(e -> ((CustomException) e).getErrorCode())
+                .isEqualTo(ErrorCode.CHAT_MESSAGE_TOO_LONG);
+
+        verify(aiChatClient, never()).stream(any(), any());
+    }
+
+    @Test
+    @DisplayName("정확히 500자는 통과한다")
+    void allowsExactly500Characters() {
+        givenAiLines("data: {\"done\":true}");
+
+        assertThatCode(() -> run(onboarding("가".repeat(500)))).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("길이 초과는 호출 한도를 깎지 않는다")
+    void tooLongDoesNotConsumeQuota() {
+        // 거절된 요청이 한도를 깎으면 오타 한 번에 30회가 날아갑니다.
+        for (int i = 0; i < 40; i++) {
+            assertThatThrownBy(() -> chatService.relay(session, onboarding("가".repeat(501))))
+                    .isInstanceOf(CustomException.class);
+        }
+
+        givenAiLines("data: {\"done\":true}");
+        assertThatCode(() -> run(onboarding("정상 발화"))).doesNotThrowAnyException();
     }
 
     @Test
