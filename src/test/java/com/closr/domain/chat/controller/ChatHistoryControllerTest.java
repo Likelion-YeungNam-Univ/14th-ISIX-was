@@ -11,7 +11,11 @@ import com.closr.domain.chat.dto.ResponseChatHistoryDto;
 import com.closr.domain.chat.dto.ResponseChatMessageDto;
 import com.closr.domain.chat.entity.ChatMode;
 import com.closr.domain.chat.entity.ChatRole;
+import com.closr.domain.chat.dto.ResponseChatSummaryDto;
+import com.closr.domain.chat.dto.ResponseChatSummaryDto.Item;
+import com.closr.domain.chat.dto.ResponseChatSummaryDto.Preference;
 import com.closr.domain.chat.service.ChatHistoryService;
+import com.closr.domain.chat.service.ChatSummaryService;
 import com.closr.domain.user.entity.Session;
 import com.closr.domain.user.service.SessionService;
 import com.closr.global.exception.CustomException;
@@ -44,6 +48,10 @@ class ChatHistoryControllerTest {
 
     @MockBean
     private ChatHistoryService chatHistoryService;
+
+    /** 같은 컨트롤러가 상담 요약도 다룹니다. 슬라이스라 빈을 채워 줘야 뜹니다. */
+    @MockBean
+    private ChatSummaryService chatSummaryService;
 
     @MockBean
     private SessionService sessionService;
@@ -107,6 +115,54 @@ class ChatHistoryControllerTest {
                         .requestAttr("session", session))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("CHAT_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("상담 요약을 반환한다")
+    void returnsSummary() throws Exception {
+        given(chatSummaryService.findSummary(any(), any())).willReturn(
+                new ResponseChatSummaryDto("cv_9f21ab7c4d20", "상의 2벌을 비교하셨습니다.",
+                        List.of(
+                                new Item(2L, "슬림 셔츠", "M", false, false, "어깨가 2.6cm 부족해 당김"),
+                                new Item(3L, "오버핏 셔츠", "L", true, true, "전 부위 적정")),
+                        new Preference("출근", List.of("어깨"), "오버핏", "붙는 옷")));
+
+        mockMvc.perform(get("/api/v1/chat/{conversationId}/summary", "cv_9f21ab7c4d20")
+                        .requestAttr("session", session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.headline").value("상의 2벌을 비교하셨습니다."))
+                .andExpect(jsonPath("$.data.items", Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.data.items[0].note").value("어깨가 2.6cm 부족해 당김"))
+                .andExpect(jsonPath("$.data.items[1].bestFit").value(true))
+                // 부위는 한글로 나가야 합니다. 프론트가 매핑표를 또 들고 있지 않도록.
+                .andExpect(jsonPath("$.data.preference.concerns[0]").value("어깨"));
+    }
+
+    @Test
+    @DisplayName("보여줄 것이 없는 상담은 빈 값으로 내려간다")
+    void returnsEmptySummary() throws Exception {
+        // 옷을 하나도 안 본 온보딩 대화입니다. 프론트가 이 셋으로 노출 여부를 정합니다.
+        given(chatSummaryService.findSummary(any(), any())).willReturn(
+                new ResponseChatSummaryDto("cv_0011223344aa", null, List.of(), null));
+
+        mockMvc.perform(get("/api/v1/chat/{conversationId}/summary", "cv_0011223344aa")
+                        .requestAttr("session", session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.headline").doesNotExist())
+                .andExpect(jsonPath("$.data.items", Matchers.hasSize(0)))
+                .andExpect(jsonPath("$.data.preference").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("남의 상담 요약도 404 를 반환한다")
+    void returnsNotFoundForOthersSummary() throws Exception {
+        willThrow(new CustomException(ErrorCode.CHAT_NOT_FOUND))
+                .given(chatSummaryService).findSummary(any(), any());
+
+        mockMvc.perform(get("/api/v1/chat/{conversationId}/summary", "cv_someoneelse00")
+                        .requestAttr("session", session))
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("CHAT_NOT_FOUND"));
     }
 }
