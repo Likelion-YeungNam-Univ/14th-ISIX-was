@@ -48,6 +48,9 @@ CREATE TABLE IF NOT EXISTS avatars (
     measurements jsonb,
     warnings     jsonb,
     confidence   double precision,
+    body_type         varchar(30),
+    body_type_label   varchar(20),
+    body_type_message text,
     created_at   timestamp(6),
     updated_at   timestamp(6),
     CONSTRAINT fk_avatars_session FOREIGN KEY (session_id) REFERENCES sessions (id)

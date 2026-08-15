@@ -84,7 +84,8 @@ public class AvatarService {
         if (response.isDone()) {
             AiAvatarResponse.Result result = data.result();
             if (result != null) {
-                avatar.markDone(result.glbUrl(), result.measurements(), result.confidence(), result.warnings());
+                avatar.markDone(result.glbUrl(), result.measurements(), result.confidence(), result.warnings(),
+                        result.bodyType(), result.bodyTypeLabel(), result.bodyTypeMessage());
             }
         } else if (STATUS_FAILED.equals(data.status())) {
             avatar.markFailed();

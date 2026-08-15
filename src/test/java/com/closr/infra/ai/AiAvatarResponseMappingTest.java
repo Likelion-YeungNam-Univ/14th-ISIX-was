@@ -63,7 +63,10 @@ class AiAvatarResponseMappingTest {
                         "inseam": 73.9, "total_length": 139.3, "front_width": 30.5
                       },
                       "confidence": 0.718,
-                      "warnings": []
+                      "warnings": [],
+                      "body_type": "triangle",
+                      "body_type_label": "삼각형",
+                      "body_type_message": "엉덩이가 상체보다 큰 편입니다."
                     },
                     "error_message": null
                   },
