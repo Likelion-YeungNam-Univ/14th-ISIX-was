@@ -2,7 +2,9 @@ package com.closr.domain.chat.controller;
 
 import com.closr.api.ChatHistoryApi;
 import com.closr.domain.chat.dto.ResponseChatHistoryDto;
+import com.closr.domain.chat.dto.ResponseChatSummaryDto;
 import com.closr.domain.chat.service.ChatHistoryService;
+import com.closr.domain.chat.service.ChatSummaryService;
 import com.closr.domain.user.entity.Session;
 import com.closr.global.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +25,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChatHistoryController implements ChatHistoryApi {
 
     private final ChatHistoryService chatHistoryService;
+    private final ChatSummaryService chatSummaryService;
 
     @Override
     public ResponseEntity<ApiResponse<ResponseChatHistoryDto>> getHistory(
             @RequestAttribute("session") Session session, String conversationId) {
         return ResponseEntity.ok(
                 ApiResponse.ok(chatHistoryService.findHistory(session, conversationId)));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<ResponseChatSummaryDto>> getSummary(
+            @RequestAttribute("session") Session session, String conversationId) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(chatSummaryService.findSummary(session, conversationId)));
     }
 }
