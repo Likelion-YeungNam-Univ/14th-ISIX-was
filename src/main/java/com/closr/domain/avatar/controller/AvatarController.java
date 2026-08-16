@@ -62,10 +62,12 @@ public class AvatarController implements AvatarApi {
     }
 
     private ResponseAvatarStatusDto toDto(Avatar avatar) {
-        return new ResponseAvatarStatusDto(
+        ResponseAvatarStatusDto responseAvatarStatusDto = new ResponseAvatarStatusDto(
                 avatar.getStatus(),
                 avatar.getId(),
                 avatar.getJobId(),
+                avatar.getHeight(),
+                avatar.getWeight(),
                 avatar.getGlbUrl(),
                 avatar.getMeasurements(),
                 avatar.getConfidence(),
@@ -73,6 +75,6 @@ public class AvatarController implements AvatarApi {
                 avatar.getBodyType(),
                 avatar.getBodyTypeLabel(),
                 avatar.getBodyTypeMessage()
-        );
+        ); return responseAvatarStatusDto;
     }
 }

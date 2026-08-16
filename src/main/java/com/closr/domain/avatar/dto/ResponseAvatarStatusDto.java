@@ -7,6 +7,8 @@ public record ResponseAvatarStatusDto(
         String status,
         Long avatarId,
         String jobId,
+        Integer height,
+        Integer weight,
         String glbUrl,
         Map<String, Double> measurements,
         Double confidence,
