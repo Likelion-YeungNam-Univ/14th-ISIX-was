@@ -69,24 +69,24 @@ UPDATE fitting_records   SET recommended_size = lower(recommended_size)
 INSERT INTO garment_size_specs (garment_id, size, measurements, target_ease, created_at, updated_at)
 SELECT g.id, v.size, v.measurements::jsonb, v.target_ease::jsonb, NOW(), NOW()
 FROM (VALUES
-    ('tshirt_basic', 's', '{"shoulder_width": 35.0, "chest_circ": 99.0}', '{"shoulder_width": -7.9, "chest_circ": 14.0}'),
+    ('tshirt_basic', 's', '{"shoulder_width": 35.0, "chest_circ": 99.0}', '{"shoulder_width": -7.9, "chest_circ": 15.9}'),
     ('tshirt_basic', 'm', '{"shoulder_width": 37.0, "chest_circ": 108.0}', '{"shoulder_width": -9.0, "chest_circ": 14.0}'),
-    ('tshirt_basic', 'l', '{"shoulder_width": 38.7, "chest_circ": 114.0}', '{"shoulder_width": -8.9, "chest_circ": 14.0}'),
-    ('shirt_slim', 's', '{"shoulder_width": 35.0, "chest_circ": 93.0}', '{"shoulder_width": -7.9, "chest_circ": 8.0}'),
+    ('tshirt_basic', 'l', '{"shoulder_width": 38.7, "chest_circ": 114.0}', '{"shoulder_width": -8.9, "chest_circ": 13.0}'),
+    ('shirt_slim', 's', '{"shoulder_width": 35.0, "chest_circ": 93.0}', '{"shoulder_width": -7.9, "chest_circ": 9.9}'),
     ('shirt_slim', 'm', '{"shoulder_width": 37.0, "chest_circ": 102.0}', '{"shoulder_width": -9.0, "chest_circ": 8.0}'),
-    ('shirt_slim', 'l', '{"shoulder_width": 38.6, "chest_circ": 108.0}', '{"shoulder_width": -9.0, "chest_circ": 8.0}'),
-    ('shirt_over', 's', '{"shoulder_width": 35.0, "chest_circ": 115.0}', '{"shoulder_width": -7.9, "chest_circ": 30.0}'),
+    ('shirt_slim', 'l', '{"shoulder_width": 38.6, "chest_circ": 108.0}', '{"shoulder_width": -9.0, "chest_circ": 7.0}'),
+    ('shirt_over', 's', '{"shoulder_width": 35.0, "chest_circ": 115.0}', '{"shoulder_width": -7.9, "chest_circ": 31.9}'),
     ('shirt_over', 'm', '{"shoulder_width": 37.0, "chest_circ": 124.0}', '{"shoulder_width": -9.0, "chest_circ": 30.0}'),
-    ('shirt_over', 'l', '{"shoulder_width": 39.1, "chest_circ": 130.0}', '{"shoulder_width": -8.5, "chest_circ": 30.0}'),
-    ('dress_basic', 's', '{"shoulder_width": 35.0, "chest_circ": 99.0, "hip_circ": 97.0}', '{"shoulder_width": -7.9, "chest_circ": 14.0, "hip_circ": 6.0}'),
-    ('dress_basic', 'm', '{"shoulder_width": 37.0, "chest_circ": 108.0, "hip_circ": 106.0}', '{"shoulder_width": -9.0, "chest_circ": 14.0, "hip_circ": 6.0}'),
-    ('dress_basic', 'l', '{"shoulder_width": 38.7, "chest_circ": 114.0, "hip_circ": 112.0}', '{"shoulder_width": -8.9, "chest_circ": 14.0, "hip_circ": 6.0}'),
-    ('pants_slacks', 's', '{"waist_circ": 71.5}', '{"waist_circ": 2.5}'),
-    ('pants_slacks', 'm', '{"waist_circ": 80.1}', '{"waist_circ": 2.1}'),
-    ('pants_slacks', 'l', '{"waist_circ": 85.8}', '{"waist_circ": 1.8}'),
-    ('skirt_pencil', 's', '{"waist_circ": 71.0, "hip_circ": 97.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}'),
-    ('skirt_pencil', 'm', '{"waist_circ": 80.0, "hip_circ": 106.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}'),
-    ('skirt_pencil', 'l', '{"waist_circ": 86.0, "hip_circ": 112.0}', '{"waist_circ": 2.0, "hip_circ": 6.0}')
+    ('shirt_over', 'l', '{"shoulder_width": 39.1, "chest_circ": 130.0}', '{"shoulder_width": -8.5, "chest_circ": 29.0}'),
+    ('dress_basic', 's', '{"shoulder_width": 35.0, "chest_circ": 99.0, "hip_circ": 97.0}', '{"shoulder_width": -7.9, "chest_circ": 15.9, "hip_circ": 7.9}'),
+    ('dress_basic', 'm', '{"shoulder_width": 37.0, "chest_circ": 108.0, "hip_circ": 106.0}', '{"shoulder_width": -9.0, "chest_circ": 14.0, "hip_circ": 7.3}'),
+    ('dress_basic', 'l', '{"shoulder_width": 38.7, "chest_circ": 114.0, "hip_circ": 112.0}', '{"shoulder_width": -8.9, "chest_circ": 13.0, "hip_circ": 7.3}'),
+    ('pants_slacks', 's', '{"waist_circ": 71.5}', '{"waist_circ": 10.8}'),
+    ('pants_slacks', 'm', '{"waist_circ": 80.1}', '{"waist_circ": 5.2}'),
+    ('pants_slacks', 'l', '{"waist_circ": 85.8}', '{"waist_circ": 2.3}'),
+    ('skirt_pencil', 's', '{"waist_circ": 71.0, "hip_circ": 97.0}', '{"waist_circ": 10.3, "hip_circ": 7.9}'),
+    ('skirt_pencil', 'm', '{"waist_circ": 80.0, "hip_circ": 106.0}', '{"waist_circ": 5.1, "hip_circ": 7.3}'),
+    ('skirt_pencil', 'l', '{"waist_circ": 86.0, "hip_circ": 112.0}', '{"waist_circ": 2.5, "hip_circ": 7.3}')
 ) AS v(design, size, measurements, target_ease)
 JOIN garments g ON g.design = v.design
 ON CONFLICT (garment_id, size) DO UPDATE
