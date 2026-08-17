@@ -165,23 +165,32 @@ class SeedDataTest {
                 garments.stream().map(Garment::getId).toList());
 
         assertThat(specs).isNotEmpty();
+        // 부위를 하나도 못 찾으면 이 테스트는 아무것도 검증하지 않은 채 통과합니다.
+        // 실제로 센 개수를 남겨 그 경우를 막습니다. 의류 6종 × 부위 합계입니다.
+        int compared = 0;
+
         for (GarmentSizeSpec spec : specs) {
             String size = spec.getSize().toLowerCase(Locale.ROOT);
             Map<String, Double> body = grid.get(TARGET_BUCKET.get(size));
             assertThat(body).as("사이즈 %s 의 기준 구간", size).isNotNull();
 
-            spec.getMeasurements().forEach((part, garmentCm) -> {
+            for (Map.Entry<String, Double> entry : spec.getMeasurements().entrySet()) {
+                String part = entry.getKey();
+                Double garmentCm = entry.getValue();
                 Double targetEase = spec.getTargetEase().get(part);
                 Double bodyCm = body.get(part);
                 if (targetEase == null || bodyCm == null) {
-                    return;   // 격자에 없는 부위는 판정 대상이 아닙니다.
+                    continue;   // 격자에 없는 부위는 판정 대상이 아닙니다.
                 }
                 String key = spec.getGarment().getDesign() + " " + size + " " + part;
                 assertThat(targetEase)
                         .as("%s — 의류 %.1f, 기준 체형 %.1f", key, garmentCm, bodyCm)
                         .isEqualTo(round1(garmentCm - bodyCm));
-            });
+                compared++;
+            }
         }
+
+        assertThat(compared).as("검증한 부위 수").isEqualTo(36);
     }
 
     /**
