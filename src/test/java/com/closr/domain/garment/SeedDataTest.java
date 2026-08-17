@@ -8,6 +8,9 @@ import com.closr.domain.garment.entity.GarmentSizeSpec;
 import com.closr.domain.garment.repository.FitToleranceRepository;
 import com.closr.domain.garment.repository.GarmentRepository;
 import com.closr.domain.garment.repository.GarmentSizeSpecRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,6 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -137,6 +141,87 @@ class SeedDataTest {
             String key = spec.getGarment().getDesign() + " " + spec.getSize();
             assertThat(shoulder).as(key).isEqualTo(expected.get(key));
         }
+    }
+
+    @Test
+    @DisplayName("목표 여유가 그 사이즈의 기준 체형에서 편차 0 이 되는 값이다")
+    void targetEaseIsGridBaselined() throws Exception {
+        // 판정은 body_grid.json 좌표계에서 정의돼 있습니다. 목표 여유가 다른
+        // 기준(마네킹 상수 등)에서 오면 그만큼 통째로 치우칩니다. 실제로 2026-08-17
+        // 전까지 허리가 그랬고, S 목표 체형을 정확히 가진 사람이 S 바지를 입으면
+        // 편차 +8.3 으로 "여유 있음" 판정을 받았습니다. 자기 사이즈인데요.
+        //
+        // 그래서 값을 하나씩 박는 대신 관계를 검증합니다.
+        //
+        //     목표 여유 = 의류 치수 − 기준 체형 치수
+        //
+        // 이러면 두 가지가 같이 잡힙니다. 목표 여유가 딴 데서 오는 경우와,
+        // 의류 치수만 바뀌고 목표 여유를 다시 안 뽑은 경우입니다. 뒤쪽은 편차
+        // 계산에서 의류 항이 소거되지 않아 그 차이가 판정에 그대로 남습니다.
+        Map<String, Map<String, Double>> grid = loadGridMeasurements();
+
+        List<Garment> garments = garmentRepository.findAllByOrderByIdAsc();
+        List<GarmentSizeSpec> specs = garmentSizeSpecRepository.findByGarmentIdIn(
+                garments.stream().map(Garment::getId).toList());
+
+        assertThat(specs).isNotEmpty();
+        // 부위를 하나도 못 찾으면 이 테스트는 아무것도 검증하지 않은 채 통과합니다.
+        // 실제로 센 개수를 남겨 그 경우를 막습니다. 의류 6종 × 부위 합계입니다.
+        int compared = 0;
+
+        for (GarmentSizeSpec spec : specs) {
+            String size = spec.getSize().toLowerCase(Locale.ROOT);
+            Map<String, Double> body = grid.get(TARGET_BUCKET.get(size));
+            assertThat(body).as("사이즈 %s 의 기준 구간", size).isNotNull();
+
+            for (Map.Entry<String, Double> entry : spec.getMeasurements().entrySet()) {
+                String part = entry.getKey();
+                Double garmentCm = entry.getValue();
+                Double targetEase = spec.getTargetEase().get(part);
+                Double bodyCm = body.get(part);
+                if (targetEase == null || bodyCm == null) {
+                    continue;   // 격자에 없는 부위는 판정 대상이 아닙니다.
+                }
+                String key = spec.getGarment().getDesign() + " " + size + " " + part;
+                assertThat(targetEase)
+                        .as("%s — 의류 %.1f, 기준 체형 %.1f", key, garmentCm, bodyCm)
+                        .isEqualTo(round1(garmentCm - bodyCm));
+                compared++;
+            }
+        }
+
+        assertThat(compared).as("검증한 부위 수").isEqualTo(36);
+    }
+
+    /**
+     * 사이즈별 기준 체형 구간.
+     *
+     * <p>의류 파트 {@code make_spec.py} 가 목표 여유를 뽑을 때 쓰는 몸입니다.
+     * 어깨 목표 여유를 역산해도 같은 구간이 나옵니다 — 예를 들어
+     * {@code tshirt_basic m} 의 −9.0 은 37.0 − 46.0(H1B2) 입니다.
+     *
+     * <p>이 대응이 바뀌면 목표 여유 전체를 다시 뽑아야 합니다.
+     */
+    private static final Map<String, String> TARGET_BUCKET =
+            Map.of("s", "H1B0", "m", "H1B2", "l", "H1B3");
+
+    /** body_grid.json 의 구간별 실측 치수. 판정 좌표계의 원점입니다. */
+    private Map<String, Map<String, Double>> loadGridMeasurements() throws Exception {
+        try (var in = new ClassPathResource("body_grid.json").getInputStream()) {
+            JsonNode root = new ObjectMapper().readTree(in);
+            Map<String, Map<String, Double>> grid = new LinkedHashMap<>();
+            for (JsonNode bucket : root.path("buckets")) {
+                Map<String, Double> body = new LinkedHashMap<>();
+                bucket.path("measurements_cm").properties()
+                        .forEach(entry -> body.put(entry.getKey(), entry.getValue().asDouble()));
+                grid.put(bucket.path("id").asText(), body);
+            }
+            return grid;
+        }
+    }
+
+    private double round1(double value) {
+        return Math.round(value * 10) / 10.0;
     }
 
     @Test
