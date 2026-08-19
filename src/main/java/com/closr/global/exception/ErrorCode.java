@@ -38,6 +38,8 @@ public enum ErrorCode {
     // 의류 · 피팅
     GARMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "의류를 찾을 수 없습니다"),
     FITTING_NOT_AVAILABLE(HttpStatus.NOT_FOUND, "해당 조합은 준비 중입니다. 다른 사이즈를 선택해주세요"),
+    // 남의 기록도 이 코드입니다. 403 은 "그 기록이 있다" 를 알려줍니다.
+    FITTING_NOT_FOUND(HttpStatus.NOT_FOUND, "피팅 기록을 찾을 수 없습니다"),
 
     // AI 챗봇
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "대화를 찾을 수 없습니다"),

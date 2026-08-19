@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -105,5 +106,28 @@ class FittingHistoryControllerTest {
         mockMvc.perform(get("/api/v1/fittings/{id}", 99).requestAttr("session", session))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("기록을 지우면 본문 없이 204 를 반환한다")
+    void deleteReturnsNoContent() throws Exception {
+        mockMvc.perform(delete("/api/v1/fittings/{fittingId}", 7L)
+                        .requestAttr("session", session))
+                .andExpect(status().isNoContent());
+
+        Mockito.verify(fittingRecordService).delete(any(), eq(7L));
+    }
+
+    @Test
+    @DisplayName("없는 기록이거나 남의 기록이면 404 를 반환한다")
+    void deleteReturnsNotFoundForOthers() throws Exception {
+        // 403 은 "그 기록이 있다" 를 알려줍니다. 존재 여부까지 감춥니다.
+        willThrow(new CustomException(ErrorCode.FITTING_NOT_FOUND))
+                .given(fittingRecordService).delete(any(), eq(999L));
+
+        mockMvc.perform(delete("/api/v1/fittings/{fittingId}", 999L)
+                        .requestAttr("session", session))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("FITTING_NOT_FOUND"));
     }
 }

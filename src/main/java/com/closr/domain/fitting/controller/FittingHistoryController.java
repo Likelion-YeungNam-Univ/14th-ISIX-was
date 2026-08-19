@@ -29,6 +29,13 @@ public class FittingHistoryController implements FittingHistoryApi {
     }
 
     @Override
+    public ResponseEntity<Void> deleteFitting(
+            @RequestAttribute("session") Session session, Long fittingId) {
+        fittingRecordService.delete(session, fittingId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
     public ResponseEntity<ApiResponse<ResponseFittingRecordDetailDto>> getFitting(
             @RequestAttribute("session") Session session, Long fittingId) {
         return ResponseEntity.ok(ApiResponse.ok(fittingRecordService.findOne(session, fittingId)));
