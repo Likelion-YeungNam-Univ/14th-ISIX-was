@@ -88,6 +88,19 @@ public class ChatHistoryService {
     }
 
     /**
+     * 대화에 아바타를 붙입니다. 이미 붙어 있으면 아무것도 하지 않습니다.
+     *
+     * <p>홈에서 시작한 대화를 피팅룸에서 이어받을 때 씁니다. 그 대화는 아바타 없이
+     * 열렸는데, 붙이지 않으면 상담 요약이 빈 값으로 나갑니다.
+     */
+    @Transactional
+    public void linkAvatar(Long conversationPk, Avatar avatar) {
+        conversationRepository.findById(conversationPk).ifPresentOrElse(
+                conversation -> conversation.linkAvatarIfAbsent(avatar),
+                () -> log.warn("대화 {} 를 찾지 못해 아바타를 붙이지 못했습니다.", conversationPk));
+    }
+
+    /**
      * 대화 요약을 갈아 끼웁니다.
      *
      * <p>AI 가 {@code done} 이벤트에 실어 보낸 값입니다. 이전 값과 병합하지

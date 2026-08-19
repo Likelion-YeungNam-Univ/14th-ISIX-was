@@ -120,11 +120,27 @@ public class ChatService {
         return avatar;
     }
 
+    /**
+     * 이어받을 대화를 찾거나 새로 엽니다.
+     *
+     * <p>{@code conversationId} 를 주면 그 대화를 이어씁니다. 홈에서 시작한 대화를
+     * 피팅룸에서 이어받는 경로가 여기입니다 — 화면이 바뀌어도 앞서 한 말이 유지됩니다.
+     *
+     * <p><b>이어받은 대화에 아바타를 붙입니다.</b> 홈 대화는 아바타 없이 열리는데,
+     * 그대로 두면 상담 요약이 비어서 나갑니다. 요약은 대화에 매달린 아바타로 피팅
+     * 기록을 찾기 때문입니다. 조용히 빈 값이 되는 종류라 여기서 막습니다.
+     */
     private Conversation resolveConversation(Session session, RequestChatDto request, Avatar avatar) {
         if (request.conversationId() == null || request.conversationId().isBlank()) {
             return chatHistoryService.open(session, request.mode(), avatar);
         }
-        return chatHistoryService.findOwned(session, request.conversationId());
+
+        Conversation conversation =
+                chatHistoryService.findOwned(session, request.conversationId());
+        if (avatar != null) {
+            chatHistoryService.linkAvatar(conversation.getId(), avatar);
+        }
+        return conversation;
     }
 
     private void stream(OutputStream out, String conversationId, Long conversationPk,

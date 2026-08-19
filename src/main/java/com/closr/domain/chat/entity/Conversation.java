@@ -82,6 +82,23 @@ public class Conversation extends BaseTimeEntity {
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> summary;
 
+    /**
+     * 뒤늦게 아바타를 붙입니다. 이미 붙어 있으면 그대로 둡니다.
+     *
+     * <p>홈에서 시작한 대화는 아바타 이전 화면이라 {@code null} 로 열립니다.
+     * 사용자가 그 대화를 이어서 피팅룸에 들어오면 그때 아바타가 정해집니다.
+     * <b>여기서 붙이지 않으면 상담 요약이 빈 값으로 나갑니다</b> — 요약은
+     * 대화에 매달린 아바타로 피팅 기록을 찾습니다.
+     *
+     * <p>바꾸지는 않습니다. 아바타를 옮겨 가며 대화하면 어느 몸의 기록인지
+     * 알 수 없어져, 첫 아바타를 기준으로 둡니다.
+     */
+    public void linkAvatarIfAbsent(Avatar avatar) {
+        if (this.avatar == null) {
+            this.avatar = avatar;
+        }
+    }
+
     /** 새 요약으로 갈아 끼웁니다. 이전 값과 병합하지 않습니다 — 매 턴 전체를 다시 뽑습니다. */
     public void updateSummary(Map<String, Object> summary) {
         this.summary = summary;
