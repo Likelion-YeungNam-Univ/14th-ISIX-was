@@ -62,8 +62,10 @@ class FittingServiceTest {
 
         // 착용 불가 목록은 목이 아니라 실제 missing_combos.json 을 읽습니다. 주소 조합이
         // 파일명 규칙과 어긋나면 R2 에서 404 가 나는데, 목으로 덮으면 그걸 못 잡습니다.
+        // 미리보기 없는 조합의 응답을 확인하려면 목록에 값이 있어야 합니다. 운영
+        // 파일은 비어 있을 수 있어 픽스처를 씁니다(missing_combos_fixture.json).
         GarmentAssetResolver assetResolver = new GarmentAssetResolver(
-                new ObjectMapper(), GarmentAssetResolver.DEFAULT_RESOURCE, ASSETS_BASE);
+                new ObjectMapper(), "missing_combos_fixture.json", ASSETS_BASE);
         assetResolver.load();
 
         // 구간 배정은 BodyGridMatcherTest 에서 이미 검증합니다. 여기서는 어떤 구간이
@@ -248,7 +250,7 @@ class FittingServiceTest {
     @Test
     @DisplayName("착용 불가 조합은 주소 없이 사유만 내려주고 판정은 그대로 제공한다")
     void marksImpossibleCombinationUnavailable() {
-        // shirt_slim_s__H2B2 는 missing_combos.json 에 있는 조합입니다.
+        // shirt_slim_s__H2B2 는 픽스처 목록에 있는 조합입니다.
         // 미리보기를 만들지 못한 조합입니다. 착용 가능 여부는 판정이 따로 정합니다.
         Garment slim = Garment.builder()
                 .design("shirt_slim").name("슬림 셔츠").category("top").fit("슬림").build();

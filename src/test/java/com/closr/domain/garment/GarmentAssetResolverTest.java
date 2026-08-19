@@ -21,6 +21,15 @@ class GarmentAssetResolverTest {
 
     private static final String BASE = "https://assets.example/garments/v1";
 
+    /**
+     * 목록에 값이 있는 상태를 재현하는 픽스처.
+     *
+     * <p>운영 파일은 재시뮬 결과에 따라 비어 있을 수 있습니다. 그 파일로만 검증하면
+     * 목록이 빌 때 "미리보기 없는 조합을 걸러내는 동작" 자체가 검증에서 사라집니다.
+     * 동작은 픽스처로 고정하고, 운영 파일은 형태와 현재 내용만 확인합니다.
+     */
+    private static final String FIXTURE = "missing_combos_fixture.json";
+
     private GarmentAssetResolver resolver;
 
     @BeforeEach
@@ -61,22 +70,28 @@ class GarmentAssetResolverTest {
     }
 
     @Test
-    @DisplayName("착용 불가 3조합은 주소 없이 TOO_SMALL 을 돌려준다")
+    @DisplayName("목록에 오른 조합은 주소 없이 TOO_SMALL 을 돌려준다")
     void marksMissingCombosTooSmall() {
-        // 시뮬레이션이 미리보기를 만들지 못한 조합입니다. 이름은 TOO_SMALL 이지만
-        // shirt_slim_m__H2B3 는 옷이 몸보다 1.0cm 큽니다 — 미리보기 유무만 나타냅니다.
-        for (String[] combo : new String[][]{
-                {"shirt_slim", "s", "H2B2"},
-                {"shirt_slim", "s", "H2B3"},
-                {"shirt_slim", "m", "H2B3"}}) {
-            GarmentAsset asset = resolver.resolve(combo[0], combo[1], combo[2]);
+        GarmentAssetResolver withMissing =
+                new GarmentAssetResolver(new ObjectMapper(), FIXTURE, BASE);
+        withMissing.load();
 
-            assertThat(asset.unavailableReason())
-                    .as("%s_%s__%s", combo[0], combo[1], combo[2])
-                    .isEqualTo(UnavailableReason.TOO_SMALL);
-            assertThat(asset.glbUrl()).isNull();
-            assertThat(asset.easeUrl()).isNull();
-        }
+        GarmentAsset asset = withMissing.resolve("shirt_slim", "s", "H2B2");
+
+        assertThat(asset.unavailableReason()).isEqualTo(UnavailableReason.TOO_SMALL);
+        assertThat(asset.glbUrl()).isNull();
+        assertThat(asset.easeUrl()).isNull();
+    }
+
+    @Test
+    @DisplayName("운영 파일에는 현재 빠진 조합이 없다")
+    void shippedListIsEmpty() {
+        // 2026-08-19 재시뮬에서 shirt_slim 3조합이 전부 미리보기를 만들었습니다.
+        // 목록이 다시 채워지면 이 테스트가 먼저 알려줍니다 — 그때는 프론트가
+        // unavailableReason 분기를 타는지 함께 확인해야 합니다.
+        assertThat(resolver.resolve("shirt_slim", "s", "H2B2").unavailableReason()).isNull();
+        assertThat(resolver.resolve("shirt_slim", "s", "H2B3").unavailableReason()).isNull();
+        assertThat(resolver.resolve("shirt_slim", "m", "H2B3").unavailableReason()).isNull();
     }
 
     @Test
