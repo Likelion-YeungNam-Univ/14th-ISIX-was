@@ -11,14 +11,21 @@
 -- 사이즈 스펙과 핏별 허용 범위도 함께 넣습니다.
 -- 운영은 spring.sql.init.mode: never 라 data.sql 이 돌지 않으므로,
 -- 이 파일이 운영 DB 에 값을 반영하는 유일한 경로입니다.
-INSERT INTO garments (design, name, category, created_at, updated_at) VALUES
-    ('tshirt_basic',  '베이직 티셔츠',  'top',    NOW(), NOW()),
-    ('shirt_slim',    '슬림 셔츠',      'top',    NOW(), NOW()),
-    ('shirt_over',    '오버핏 셔츠',    'top',    NOW(), NOW()),
-    ('dress_basic',   '베이직 원피스',  'dress',  NOW(), NOW()),
-    ('pants_slacks',  '슬랙스',         'bottom', NOW(), NOW()),
-    ('skirt_pencil',  '펜슬 스커트',    'bottom', NOW(), NOW())
-ON CONFLICT (design) DO NOTHING;
+INSERT INTO garments (design, name, category, fit, thumbnail_url, created_at, updated_at)
+SELECT v.design, v.name, v.category, v.fit, v.thumbnail_url, NOW(), NOW()
+FROM (VALUES
+          ('tshirt_basic', '베이직 티셔츠', 'top', '레귤러', 'https://images.mcmworldwide.com/i/mcmworldwide/MHTESBC01WT00L_01/-white-l?$w1000$&fmt=auto&qlt=default'),
+          ('shirt_slim', '슬림 셔츠', 'top', '슬림', 'https://images.mcmworldwide.com/i/mcmworldwide/MHTGAMM07BW00L_01/mcm-x-we-the-best-black-and-white-l?$w1000$&fmt=auto&qlt=default'),
+          ('shirt_over', '오버핏 셔츠', 'top', '오버핏', 'https://images.mcmworldwide.com/i/mcmworldwide/MHHGAMM02OQ048_01/-orangeade-48-it?$w1000$&fmt=auto&qlt=default'),
+          ('dress_basic', '베이직 원피스', 'dress', '레귤러', 'https://images.mcmworldwide.com/i/mcmworldwide/MFKGAMM01LI00M_01/-indigo-m?$w1000$&fmt=auto&qlt=default'),
+          ('pants_slacks', '슬랙스', 'bottom', '레귤러', 'https://images.mcmworldwide.com/i/mcmworldwide/MFPGAMM02BK040_01/-black-40-it?$w1000$&fmt=auto&qlt=default'),
+          ('skirt_pencil', '펜슬 스커트', 'bottom', '레귤러', 'https://images.mcmworldwide.com/i/mcmworldwide/MFKFAMM01BK00M_01/-econyl-black-m?$w1000$&fmt=auto&qlt=default')
+     ) AS v(design, name, category, fit, thumbnail_url)
+    ON CONFLICT (design) DO UPDATE
+                                SET fit = EXCLUDED.fit,
+                                thumbnail_url = EXCLUDED.thumbnail_url
+                            WHERE garments.fit IS DISTINCT FROM EXCLUDED.fit
+                                OR garments.thumbnail_url IS DISTINCT FROM EXCLUDED.thumbnail_url;
 
 -- 사이즈 표기를 소문자로 정리합니다.
 --
