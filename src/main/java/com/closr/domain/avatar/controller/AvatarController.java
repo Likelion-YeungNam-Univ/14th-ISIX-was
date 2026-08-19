@@ -2,6 +2,7 @@ package com.closr.domain.avatar.controller;
 
 import com.closr.api.AvatarApi;
 import com.closr.domain.avatar.dto.ResponseAvatarJobDto;
+import com.closr.domain.avatar.BodyTypeStyling;
 import com.closr.domain.avatar.dto.ResponseAvatarStatusDto;
 import com.closr.domain.avatar.entity.Avatar;
 import com.closr.domain.avatar.service.AvatarService;
@@ -66,6 +67,7 @@ public class AvatarController implements AvatarApi {
                 avatar.getStatus(),
                 avatar.getId(),
                 avatar.getJobId(),
+                avatar.getCreatedAt(),
                 avatar.getHeight(),
                 avatar.getWeight(),
                 avatar.getGlbUrl(),
@@ -74,7 +76,8 @@ public class AvatarController implements AvatarApi {
                 avatar.getWarnings(),
                 avatar.getBodyType(),
                 avatar.getBodyTypeLabel(),
-                avatar.getBodyTypeMessage()
+                avatar.getBodyTypeMessage(),
+                BodyTypeStyling.of(avatar.getBodyType())
         ); return responseAvatarStatusDto;
     }
 }
