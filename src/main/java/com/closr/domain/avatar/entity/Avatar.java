@@ -1,133 +1,71 @@
-package com.closr.domain.avatar.entity;
+package com.closr.api;
 
+import com.closr.domain.avatar.dto.RequestAvatarNameDto;
+import com.closr.domain.avatar.dto.ResponseAvatarJobDto;
+import com.closr.domain.avatar.dto.ResponseAvatarStatusDto;
 import com.closr.domain.user.entity.Session;
-import com.closr.global.common.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.closr.global.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
-import java.util.Map;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
-/**
- * 사진 1장으로 만든 3D 아바타.
- *
- * <p>생성은 AI 서버에서 비동기로 처리하므로 상태를 함께 들고 있습니다.
- * status 가 done 이 되면 glbUrl 과 measurements 가 채워집니다.
- */
-@Entity
-@Table(name = "avatars")
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Avatar extends BaseTimeEntity {
+@Tag(name = "Avatar", description = "아바타 생성 · 조회 · 삭제 API")
+@RequestMapping("/api/v1/avatars")
+public interface AvatarApi {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Operation(summary = "아바타 생성 요청", description = "전신 사진과 신체 정보를 입력받아 아바타 생성을 비동기로 요청합니다.")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<ApiResponse<ResponseAvatarJobDto>> createAvatar(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session,
+            @Parameter(description = "전신 사진 파일 (JPEG/PNG, 10MB 이하)")
+            @RequestPart("photo") MultipartFile photo,
+            @Parameter(description = "키 (cm, 130~200)")
+            @Min(130) @Max(200)
+            @RequestParam("height") int height,
+            @Parameter(description = "몸무게 (kg, 30~150)")
+            @Min(30) @Max(150)
+            @RequestParam("weight") int weight
+    );
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private Session session;
+    @Operation(summary = "아바타 생성 상태 조회 (폴링)", description = "발급받은 jobId로 아바타 생성 진행 상태와 최종 치수 결과를 조회합니다.")
+    @GetMapping("/{jobId}")
+    ResponseEntity<ApiResponse<ResponseAvatarStatusDto>> getAvatarStatus(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session,
+            @Parameter(description = "아바타 생성 요청 시 발급받은 jobId")
+            @PathVariable("jobId") String jobId
+    );
 
-    /** AI 서버가 발급한 작업 식별자. 폴링에 사용합니다. */
-    @Column(name = "job_id", length = 64)
-    private String jobId;
+    @Operation(summary = "내 아바타 목록 조회", description = "세션 토큰을 기반으로 지금까지 생성한 모든 아바타 목록을 최신순으로 불러옵니다.")
+    @GetMapping("/me")
+    ResponseEntity<ApiResponse<List<ResponseAvatarStatusDto>>> getMyAvatars(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session
+    );
 
-    /** processing · done · failed */
-    @Column(nullable = false, length = 20)
-    private String status;
+    @Operation(summary = "아바타 이름 수정", description = "생성된 아바타의 이름을 수정합니다.")
+    @PatchMapping("/{avatarId}")
+    ResponseEntity<ApiResponse<Void>> updateAvatarName(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session,
+            @Parameter(description = "수정할 아바타의 ID")
+            @PathVariable("avatarId") Long avatarId,
+            @RequestBody RequestAvatarNameDto request
+    );
 
-    @Column(name = "height_cm")
-    private Integer height;
-
-    @Column(name = "weight_kg")
-    private Integer weight;
-
-    @Column(name = "glb_url", length = 500)
-    private String glbUrl;
-
-    /**
-     * 부위별 실측 치수 (cm).
-     *
-     * <p>키 12개는 AI 파트가 정의한 문자열을 그대로 씁니다.
-     * 부위가 늘거나 줄어도 스키마를 바꾸지 않으려고 jsonb 로 둡니다.
-     */
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private Map<String, Double> measurements;
-
-    /** AI 서버가 보고한 인식 신뢰도. */
-    private Double confidence;
-
-    /**
-     * 신뢰도 관련 경고 목록.
-     *
-     * <p>confidence 가 0.6 미만이거나 이 값이 비어있지 않으면
-     * 프론트가 재촬영 안내 배지를 노출합니다.
-     */
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private List<String> warnings;
-
-    // 아바타 이름 컬럼 추가
-    @Column(name = "name", length = 50)
-    private String name;
-
-    // 체형 진단 결과 컬럼 추가
-    @Column(name = "body_type", length = 30)
-    private String bodyType;
-
-    @Column(name = "body_type_label", length = 20)
-    private String bodyTypeLabel;
-
-    @Column(name = "body_type_message", columnDefinition = "text")
-    private String bodyTypeMessage;
-
-    @Builder
-    private Avatar(Session session, String jobId, String status,
-                   Integer height, Integer weight, String glbUrl,
-                   Map<String, Double> measurements, Double confidence,
-                   List<String> warnings) {
-        this.session = session;
-        this.jobId = jobId;
-        this.status = status;
-        this.height = height;
-        this.weight = weight;
-        this.glbUrl = glbUrl;
-        this.measurements = measurements;
-        this.confidence = confidence;
-        this.warnings = warnings;
-    }
-
-    public void markDone(String glbUrl, Map<String, Double> measurements, Double confidence,
-                         List<String> warnings, String bodyType, String bodyTypeLabel, String bodyTypeMessage) {
-        this.status = "done";
-        this.glbUrl = glbUrl;
-        this.measurements = measurements;
-        this.confidence = confidence;
-        this.warnings = warnings;
-
-        this.bodyType = bodyType;
-        this.bodyTypeLabel = bodyTypeLabel;
-        this.bodyTypeMessage = bodyTypeMessage;
-    }
-
-    public void markFailed() {
-        this.status = "failed";
-    }
-
-    public void updateName(String newName) {
-        this.name = newName;
-    }
+    @Operation(summary = "아바타 삭제",
+            description = "아바타와 그 아바타로 남긴 피팅 기록을 지웁니다. "
+                    + "대화 기록은 지우지 않고 아바타 연결만 끊습니다 — 나눈 말과 "
+                    + "취향 요약은 몸이 바뀌어도 유효합니다.")
+    @DeleteMapping("/{avatarId}")
+    ResponseEntity<ApiResponse<Void>> deleteAvatar(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session,
+            @Parameter(description = "목록 조회로 받은 avatarId")
+            @PathVariable("avatarId") Long avatarId
+    );
 }
