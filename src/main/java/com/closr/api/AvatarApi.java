@@ -1,5 +1,6 @@
 package com.closr.api;
 
+import com.closr.domain.avatar.dto.RequestAvatarNameDto;
 import com.closr.domain.avatar.dto.ResponseAvatarJobDto;
 import com.closr.domain.avatar.dto.ResponseAvatarStatusDto;
 import com.closr.domain.user.entity.Session;
@@ -46,6 +47,15 @@ public interface AvatarApi {
     @GetMapping("/me")
     ResponseEntity<ApiResponse<List<ResponseAvatarStatusDto>>> getMyAvatars(
             @Parameter(hidden = true) @RequestAttribute("session") Session session
+    );
+
+    @Operation(summary = "아바타 이름 수정", description = "생성된 아바타의 이름을 수정합니다.")
+    @PatchMapping("/{avatarId}")
+    ResponseEntity<ApiResponse<Void>> updateAvatarName(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session,
+            @Parameter(description = "수정할 아바타의 ID")
+            @PathVariable("avatarId") Long avatarId,
+            @RequestBody RequestAvatarNameDto request
     );
 
     @Operation(summary = "아바타 삭제",
