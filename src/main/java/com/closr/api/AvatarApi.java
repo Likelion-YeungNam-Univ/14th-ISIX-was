@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-@Tag(name = "Avatar", description = "아바타 생성 및 상태 조회 API")
+@Tag(name = "Avatar", description = "아바타 생성 · 조회 · 삭제 API")
 @RequestMapping("/api/v1/avatars")
 public interface AvatarApi {
 
@@ -46,5 +46,16 @@ public interface AvatarApi {
     @GetMapping("/me")
     ResponseEntity<ApiResponse<List<ResponseAvatarStatusDto>>> getMyAvatars(
             @Parameter(hidden = true) @RequestAttribute("session") Session session
+    );
+
+    @Operation(summary = "아바타 삭제",
+            description = "아바타와 그 아바타로 남긴 피팅 기록을 지웁니다. "
+                    + "대화 기록은 지우지 않고 아바타 연결만 끊습니다 — 나눈 말과 "
+                    + "취향 요약은 몸이 바뀌어도 유효합니다.")
+    @DeleteMapping("/{avatarId}")
+    ResponseEntity<ApiResponse<Void>> deleteAvatar(
+            @Parameter(hidden = true) @RequestAttribute("session") Session session,
+            @Parameter(description = "목록 조회로 받은 avatarId")
+            @PathVariable("avatarId") Long avatarId
     );
 }
