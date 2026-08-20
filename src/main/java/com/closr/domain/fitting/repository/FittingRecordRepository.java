@@ -32,4 +32,14 @@ public interface FittingRecordRepository extends JpaRepository<FittingRecord, Lo
      * @return 지운 건수
      */
     int deleteBySessionAndAvatarAndGarment(Session session, Avatar avatar, Garment garment);
+
+    /**
+     * 한 아바타의 기록을 모두 지웁니다. 아바타를 지울 때 씁니다.
+     *
+     * <p>남겨 두면 목록에 이름 없는 몸의 기록이 뜨고, 눌러도 판정을 다시 계산할
+     * 아바타가 없어 화면이 빈 상태가 됩니다.
+     *
+     * @return 지운 건수
+     */
+    int deleteBySessionAndAvatar(Session session, Avatar avatar);
 }

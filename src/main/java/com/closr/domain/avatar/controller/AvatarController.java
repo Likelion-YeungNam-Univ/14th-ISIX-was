@@ -62,6 +62,15 @@ public class AvatarController implements AvatarApi {
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
+    @Override
+    public ResponseEntity<ApiResponse<Void>> deleteAvatar(
+            @RequestAttribute("session") Session session, Long avatarId) {
+
+        avatarService.delete(session, avatarId);
+
+        return ResponseEntity.ok(ApiResponse.ok());
+    }
+
     private ResponseAvatarStatusDto toDto(Avatar avatar) {
         ResponseAvatarStatusDto responseAvatarStatusDto = new ResponseAvatarStatusDto(
                 avatar.getStatus(),
