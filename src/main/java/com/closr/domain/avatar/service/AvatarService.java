@@ -100,4 +100,15 @@ public class AvatarService {
 
         return avatars;
     }
+
+    @Transactional
+    public void updateName(Session session, Long avatarId, String newName) {
+        Avatar avatar = avatarRepository.findById(avatarId)
+                .orElseThrow(() -> new CustomException(ErrorCode.AVATAR_NOT_FOUND));
+        if (!avatar.getSession().getId().equals(session.getId())) {
+            throw new CustomException(ErrorCode.AVATAR_NOT_FOUND);
+        }
+
+        avatar.updateName(newName);
+    }
 }

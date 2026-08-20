@@ -1,6 +1,7 @@
 package com.closr.domain.avatar.controller;
 
 import com.closr.api.AvatarApi;
+import com.closr.domain.avatar.dto.RequestAvatarNameDto;
 import com.closr.domain.avatar.dto.ResponseAvatarJobDto;
 import com.closr.domain.avatar.BodyTypeStyling;
 import com.closr.domain.avatar.dto.ResponseAvatarStatusDto;
@@ -12,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -61,12 +64,22 @@ public class AvatarController implements AvatarApi {
 
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
+    @Override
+    public ResponseEntity<ApiResponse<Void>> updateAvatarName(
+            @RequestAttribute("session") Session session,
+            @PathVariable Long avatarId,
+            @RequestBody @Validated RequestAvatarNameDto request) {
+
+        avatarService.updateName(session, avatarId, request.newName());
+        return ResponseEntity.ok(ApiResponse.ok(null)); // 200 OK + ApiResponse로 감싸기
+    }
 
     private ResponseAvatarStatusDto toDto(Avatar avatar) {
         ResponseAvatarStatusDto responseAvatarStatusDto = new ResponseAvatarStatusDto(
                 avatar.getStatus(),
                 avatar.getId(),
                 avatar.getJobId(),
+                avatar.getName(),
                 avatar.getCreatedAt(),
                 avatar.getHeight(),
                 avatar.getWeight(),

@@ -80,6 +80,10 @@ public class Avatar extends BaseTimeEntity {
     @Column(columnDefinition = "jsonb")
     private List<String> warnings;
 
+    // 아바타 이름 컬럼 추가
+    @Column(name = "name", length = 50)
+    private String name;
+
     // 체형 진단 결과 컬럼 추가
     @Column(name = "body_type", length = 30)
     private String bodyType;
@@ -121,5 +125,9 @@ public class Avatar extends BaseTimeEntity {
 
     public void markFailed() {
         this.status = "failed";
+    }
+
+    public void updateName(String newName) {
+        this.name = newName;
     }
 }

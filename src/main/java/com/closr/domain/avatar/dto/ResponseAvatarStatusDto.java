@@ -22,6 +22,7 @@ public record ResponseAvatarStatusDto(
         String status,
         Long avatarId,
         String jobId,
+        String name,
         LocalDateTime createdAt,
         Integer height,
         Integer weight,
