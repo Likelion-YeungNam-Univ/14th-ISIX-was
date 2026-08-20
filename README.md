@@ -14,9 +14,9 @@
 
 ## ✂️ Team
 
-|                                                              P&D                                                              |                                                            FE                                                            |                                                           FE                                                           |                                                             AI                                                             |                                                            BE                                                            |                                                             BE                                                             |
-| :---------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------: |
-| <img src="https://avatars.githubusercontent.com/knayoung0" height="100"/> <br> [구나영](https://github.com/knayoung0) | <img src="https://avatars.githubusercontent.com/copepb" height="100"/> <br> [김민호](https://github.com/copepb) | <img src="https://avatars.githubusercontent.com/hyeonseo-sung" height="100"/> <br> [성현서](https://github.com/hyeonseo-sung) | <img src="https://avatars.githubusercontent.com/ryudayeong" height="100"/> <br> [류다영](https://github.com/ryudayeong) | <img src="https://avatars.githubusercontent.com/ckrhkdwls" height="100"/> <br> [차광진](https://github.com/ckrhkdwls) | <img src="https://avatars.githubusercontent.com/user070917" height="100"/> <br> [황연준](https://github.com/user070917) |
+| P&D | FE | FE | FE · AI | BE · AI | BE |
+| :-: | :-: | :-: | :-: | :-: | :-: |
+| <img src="https://avatars.githubusercontent.com/hyeonseo-sung" height="100"/> <br> [성현서](https://github.com/hyeonseo-sung) | <img src="https://avatars.githubusercontent.com/knayoung0" height="100"/> <br> [구나영](https://github.com/knayoung0) | <img src="https://avatars.githubusercontent.com/copepb" height="100"/> <br> [김민호](https://github.com/copepb) | <img src="https://avatars.githubusercontent.com/user070917" height="100"/> <br> [황연준](https://github.com/user070917) | <img src="https://avatars.githubusercontent.com/ryudayeong" height="100"/> <br> [류다영](https://github.com/ryudayeong) | <img src="https://avatars.githubusercontent.com/ckrhkdwls" height="100"/> <br> [차광진](https://github.com/ckrhkdwls) |
 
 <!-- 단체 사진이 있으면 여기에 추가하세요 -->
 
@@ -77,11 +77,17 @@
 git clone https://github.com/Likelion-YeungNam-Univ/14th-ISIX-was.git
 cd 14th-ISIX-was
 
-cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
+# 로컬 DB (PostgreSQL 16) 를 먼저 띄웁니다
+docker compose up -d
+
 ./gradlew bootRun
 ```
 
-> Java 17 이상이 필요합니다. API 문서는 실행 후 `/docs` 에서 확인할 수 있습니다.
+> Java 17 이상과 Docker 가 필요합니다. API 문서는 실행 후 `/docs` 에서 확인할 수 있습니다.
+>
+> 부위별 치수를 `jsonb` 로 저장하기 때문에 H2 로는 대체할 수 없습니다.
+> 접속 정보는 `local` 프로필에 기본값이 있어 컨테이너만 띄우면 별도 설정 없이 실행됩니다.
+> 테스트도 이 DB 를 사용하므로 `./gradlew test` 전에 컨테이너가 떠 있어야 합니다.
 
 ---
 
@@ -110,14 +116,15 @@ fix: 목둘레 계측 실패 수정
 
 | 브랜치 | 역할 |
 | ------ | ---- |
-| **main** | 배포 가능한 상태만 유지 |
-| **dev**  | 개발 통합 브랜치. 항상 최신 상태 유지 |
-| **작업 브랜치** | dev 에서 분기해 기능 단위로 작업 |
+| **main** | 배포 브랜치. push 되면 EC2 로 자동 배포됩니다. 검증된 상태만 올립니다 |
+| **develop**  | 개발 통합 브랜치. 항상 최신 상태 유지 |
+| **작업 브랜치** | develop 에서 분기해 기능 단위로 작업 |
 
-- 모든 작업은 dev 에서 분기한 브랜치에서 진행합니다
-- 이슈 생성 → 브랜치 생성 → 개발 완료 후 dev 로 PR
+- 모든 작업은 develop 에서 분기한 브랜치에서 진행합니다
+- 이슈 생성 → 브랜치 생성 → 개발 완료 후 develop 으로 PR
 - 리뷰·테스트를 거쳐 main 으로 PR
-- **PR 전에** 로컬 dev 를 pull 해 최신 상태로 맞추고, 작업 브랜치에서 merge 해 conflict 를 해결한 뒤 push 합니다
+- **PR 전에** 로컬 develop 을 pull 해 최신 상태로 맞추고, 작업 브랜치에서 merge 해 conflict 를 해결한 뒤 push 합니다
+- PR 을 올리면 빌드와 테스트가 자동으로 돌고, main 에 머지되면 EC2 로 배포됩니다
 
 <br>
 

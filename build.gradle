@@ -34,7 +34,8 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    runtimeOnly 'com.h2database:h2'
+    // measurements 를 jsonb 로 쓰기 때문에 H2 는 더 이상 쓰지 않습니다.
+    // 로컬은 docker compose, CI 는 서비스 컨테이너로 PostgreSQL 을 띄웁니다.
     runtimeOnly 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -43,4 +44,10 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// 지정하지 않으면 빌드하는 컴퓨터의 기본 인코딩을 따릅니다.
+// UTF-8 이 아닌 환경에서 빌드하면 소스의 한글 상수가 깨진 채로 컴파일됩니다.
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }

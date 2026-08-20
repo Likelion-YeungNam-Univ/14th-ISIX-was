@@ -1,0 +1,5 @@
+{
+  "schema_version": 2,
+  "assignment": {"H_bounds_cm": [158.0, 166.0], "B_bounds_cm": [85.5, 91.0, 97.5]},
+  "buckets": [{"id": "H0B0"}, {"id": "H0B1"}]
+}

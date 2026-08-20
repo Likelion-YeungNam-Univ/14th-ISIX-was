@@ -3,25 +3,20 @@ spring:
     name: closr
 
   profiles:
-    active: local
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
+  # 접속 정보는 프로필별 문서에서 지정합니다.
+  # 로컬은 docker compose 로 띄운 PostgreSQL 을 기본값으로 씁니다.
   datasource:
-    url: ${DB_URL:jdbc:h2:mem:closr}
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
-    hibernate:
-      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
     open-in-view: false
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
 
   servlet:
     multipart:
@@ -30,6 +25,15 @@ spring:
 
 server:
   port: 8080
+
+  # 응답 Content-Type 에 charset 이 없으면 클라이언트가 인코딩을 추측합니다.
+  # Latin-1 로 추측하면 한글이 "ìì²­í..." 형태로 깨집니다.
+  # force: true 로 요청 · 응답 양쪽에 UTF-8 을 강제합니다.
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 springdoc:
   swagger-ui:
@@ -42,6 +46,16 @@ springdoc:
 cors:
   origins: ${CORS_ORIGINS:http://localhost:5173}
 
+closr:
+  assets:
+    # 사전 계산된 GLB · 여유량 파일이 올라간 R2 공개 주소입니다.
+    # 파일명은 {design}_{size}__{bucket}.glb / ..._ease.json 이고
+    # 사이즈는 반드시 소문자입니다. R2 가 키 대소문자를 구분합니다.
+    #
+    # 기본값을 두는 이유 — 이 주소는 비밀이 아니고 프론트가 그대로 받아 갑니다.
+    # 값이 없어 기동에 실패하면 로컬 개발자가 R2 설정 없이는 서버를 못 띄웁니다.
+    base-url: ${ASSETS_BASE_URL:https://pub-1aa68cdb548b4177a7d828625c6f6bdb.r2.dev/garments/v1}
+
 ai:
   server:
     url: ${AI_SERVER_URL:http://localhost:8000}
@@ -52,11 +66,81 @@ ai:
     # 기본값보다는 여유를 둡니다.
     timeout: ${AI_SERVER_TIMEOUT:30000}
 
-jwt:
-  secret: ${JWT_SECRET:local-development-secret-key-change-me-in-production}
-  access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}
-
 logging:
   level:
     com.closr: DEBUG
+
+---
+# 로컬 개발 프로필.
+#
+# DB 는 docker compose up -d 로 띄운 PostgreSQL 을 씁니다.
+# measurements 를 jsonb 로 쓰기 때문에 H2 로는 검증이 되지 않습니다.
+#
+# application-local.yml 은 .gitignore 대상이라 새로 받은 사람에게는 없습니다.
+# 컨테이너만 띄우면 별도 설정 없이 bootRun 이 되도록 기본값을 여기에 둡니다.
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/closr}
+    username: ${DB_USERNAME:closr}
+    password: ${DB_PASSWORD:closr1234}
+
+  jpa:
+    hibernate:
+      # 로컬은 엔티티 변경이 잦아 자동 반영합니다.
+      ddl-auto: update
+    # data.sql 이 Hibernate 의 테이블 생성 이후에 실행되도록 합니다.
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+
+---
+# 운영 프로필. 값은 모두 환경변수로 주입합니다.
+# EC2 에서는 systemd 가 /home/ubuntu/.env 를 읽어 넣어줍니다.
+#
+# DB_URL 에 기본값을 두지 않습니다. 값이 없을 때 조용히 인메모리 DB 로 뜨면
+# 배포는 성공한 것처럼 보이지만 재시작마다 데이터가 사라집니다.
+# 그런 배포가 나가느니 기동을 실패시키는 편이 낫습니다.
+#
+# DB_URL 이 비면 다음 메시지를 내며 기동에 실패합니다. 원인은 DB_URL 누락입니다.
+#   Failed to instantiate [com.zaxxer.hikari.HikariDataSource]:
+#   ... threw exception with message: URL must start with 'jdbc'
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+
+  jpa:
+    hibernate:
+      # validate 였으나 운영 DB 에 테이블이 없어 기동에 실패했습니다.
+      #   Schema-validation: missing table [avatars]
+      # 로컬은 update 라 엔티티를 추가하면 테이블이 알아서 생기는데,
+      # 운영은 검사만 하므로 아무도 테이블을 만들지 않은 상태였습니다.
+      #
+      # 해커톤 동안은 엔티티가 계속 추가되므로 update 로 둡니다.
+      # 그렇지 않으면 엔티티를 추가할 때마다 운영이 같은 이유로 멈춥니다.
+      # update 는 테이블·컬럼을 추가만 하고 삭제하지 않습니다.
+      #
+      # 데모 이후에는 Flyway 로 스키마를 관리하고 validate 로 되돌립니다.
+      ddl-auto: update
+    # data.sql 이 Hibernate 의 테이블 생성 이후에 실행되도록 합니다.
+    # 이게 없으면 테이블이 없는 상태에서 INSERT 가 돌아 실패합니다.
+    defer-datasource-initialization: true
+
+  # never 였던 탓에 data.sql 이 한 번도 실행되지 않아, 배포하면
+  # garments 테이블이 빈 채로 떴습니다. 서버는 200 을 주기 때문에
+  # 프론트에는 오류 없이 빈 목록만 보이는 상태였습니다.
+  #
+  # data.sql 은 ON CONFLICT (design) DO NOTHING 이라
+  # 매 기동마다 실행돼도 중복이 생기지 않습니다.
+  sql:
+    init:
+      mode: always

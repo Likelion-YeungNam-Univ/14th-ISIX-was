@@ -14,15 +14,12 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
-    // 인증
-    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 이메일입니다"),
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"),
-    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다"),
-    TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다"),
-    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다"),
-    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다"),
-    SOCIAL_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "소셜 인증에 실패했습니다"),
+    // 세션 — 회원 가입 · 로그인 없이 게스트 세션만 사용합니다.
+    // 소셜 로그인 · JWT 관련 코드는 회원 기능을 쓰지 않기로 하면서 제거했습니다.
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "세션이 필요합니다"),
     SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "세션을 찾을 수 없습니다"),
+    SESSION_EXPIRED(HttpStatus.UNAUTHORIZED, "세션이 만료되었습니다. 새로고침 후 다시 시도해주세요"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다"),
 
     // 아바타 — AI 서버에서 전달받은 코드를 그대로 사용
     NO_PERSON_DETECTED(HttpStatus.UNPROCESSABLE_ENTITY,
@@ -34,17 +31,35 @@ public enum ErrorCode {
     LOW_CONFIDENCE(HttpStatus.UNPROCESSABLE_ENTITY,
             "인식 정확도가 낮습니다. 몸선이 드러나는 옷으로 다시 촬영해주세요"),
     AVATAR_NOT_FOUND(HttpStatus.NOT_FOUND, "아바타를 찾을 수 없습니다"),
+    AVATAR_NOT_READY(HttpStatus.CONFLICT,
+            "아바타 생성이 아직 끝나지 않았습니다. 잠시 후 다시 시도해주세요"),
     JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다"),
 
     // 의류 · 피팅
     GARMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "의류를 찾을 수 없습니다"),
     FITTING_NOT_AVAILABLE(HttpStatus.NOT_FOUND, "해당 조합은 준비 중입니다. 다른 사이즈를 선택해주세요"),
+    // 남의 기록도 이 코드입니다. 403 은 "그 기록이 있다" 를 알려줍니다.
+    FITTING_NOT_FOUND(HttpStatus.NOT_FOUND, "피팅 기록을 찾을 수 없습니다"),
+
+    // AI 챗봇
+    CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "대화를 찾을 수 없습니다"),
+    // mode=fitting 인데 avatarId 가 없는 경우입니다. 치수 없이 사이즈를 답하게 하면
+    // 없는 수치를 지어냅니다.
+    CHAT_AVATAR_REQUIRED(HttpStatus.BAD_REQUEST, "아바타를 먼저 만들어주세요"),
+    // @Valid 에 맡기면 INVALID_INPUT 으로 나가 프론트가 준비한 문구를 못 씁니다.
+    CHAT_MESSAGE_TOO_LONG(HttpStatus.BAD_REQUEST, "발화가 너무 깁니다. 500자 이내로 말해주세요"),
+    // 과금 보호입니다. 챗 요청 한 번이 LLM 호출 두 번(답변 + 요약)입니다.
+    CHAT_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "요청이 많습니다. 잠시 후 다시 시도해주세요"),
+    // 스트림을 열기 전에 실패한 경우입니다. 연 뒤에 끊기면 상태 코드를 바꿀 수 없어
+    // 스트림 안의 error 이벤트로 내려갑니다. 코드 이름은 같습니다.
+    CHAT_UPSTREAM_ERROR(HttpStatus.BAD_GATEWAY, "챗봇 서버 응답에 실패했습니다"),
 
     // 외부 연동
     AI_SERVER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE,
             "아바타 생성 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요"),
 
     // 공통
+    NOT_FOUND(HttpStatus.NOT_FOUND, "요청하신 경로를 찾을 수 없습니다"),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다"),
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "파일 크기가 너무 큽니다"),
     UNSUPPORTED_FORMAT(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다"),
