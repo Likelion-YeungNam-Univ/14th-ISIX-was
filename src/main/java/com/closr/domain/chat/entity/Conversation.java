@@ -93,6 +93,16 @@ public class Conversation extends BaseTimeEntity {
      * <p>바꾸지는 않습니다. 아바타를 옮겨 가며 대화하면 어느 몸의 기록인지
      * 알 수 없어져, 첫 아바타를 기준으로 둡니다.
      */
+    /**
+     * 아바타 연결을 끊습니다. 아바타를 지울 때 씁니다.
+     *
+     * <p>대화는 남깁니다. 다시 물으면 아바타를 먼저 만들어 달라는 안내로
+     * 돌아가고, 그 판단은 {@code fit_context} 를 만드는 쪽이 이미 하고 있습니다.
+     */
+    public void unlinkAvatar() {
+        this.avatar = null;
+    }
+
     public void linkAvatarIfAbsent(Avatar avatar) {
         if (this.avatar == null) {
             this.avatar = avatar;
