@@ -20,12 +20,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/**
- * 사진 1장으로 만든 3D 아바타.
- *
- * <p>생성은 AI 서버에서 비동기로 처리하므로 상태를 함께 들고 있습니다.
- * status 가 done 이 되면 glbUrl 과 measurements 가 채워집니다.
- */
 @Entity
 @Table(name = "avatars")
 @Getter
@@ -40,11 +34,9 @@ public class Avatar extends BaseTimeEntity {
     @JoinColumn(name = "session_id", nullable = false)
     private Session session;
 
-    /** AI 서버가 발급한 작업 식별자. 폴링에 사용합니다. */
     @Column(name = "job_id", length = 64)
     private String jobId;
 
-    /** processing · done · failed */
     @Column(nullable = false, length = 20)
     private String status;
 
@@ -57,30 +49,19 @@ public class Avatar extends BaseTimeEntity {
     @Column(name = "glb_url", length = 500)
     private String glbUrl;
 
-    /**
-     * 부위별 실측 치수 (cm).
-     *
-     * <p>키 12개는 AI 파트가 정의한 문자열을 그대로 씁니다.
-     * 부위가 늘거나 줄어도 스키마를 바꾸지 않으려고 jsonb 로 둡니다.
-     */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private Map<String, Double> measurements;
 
-    /** AI 서버가 보고한 인식 신뢰도. */
     private Double confidence;
 
-    /**
-     * 신뢰도 관련 경고 목록.
-     *
-     * <p>confidence 가 0.6 미만이거나 이 값이 비어있지 않으면
-     * 프론트가 재촬영 안내 배지를 노출합니다.
-     */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<String> warnings;
 
-    // 체형 진단 결과 컬럼 추가
+    @Column(name = "name", length = 50)
+    private String name;
+
     @Column(name = "body_type", length = 30)
     private String bodyType;
 
@@ -113,7 +94,6 @@ public class Avatar extends BaseTimeEntity {
         this.measurements = measurements;
         this.confidence = confidence;
         this.warnings = warnings;
-
         this.bodyType = bodyType;
         this.bodyTypeLabel = bodyTypeLabel;
         this.bodyTypeMessage = bodyTypeMessage;
@@ -121,5 +101,9 @@ public class Avatar extends BaseTimeEntity {
 
     public void markFailed() {
         this.status = "failed";
+    }
+
+    public void updateName(String newName) {
+        this.name = newName;
     }
 }
